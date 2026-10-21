@@ -1,0 +1,20 @@
+[project]
+name = "lord-gana-poem-gen"
+version = "0.1.0"
+description = "Exploring LLMs' abilities to generate devotional poems to Lord Gana."
+readme = "README.md"
+authors = [
+  { name = "Andalib Samandari", email = "andalibmalit@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "marimo>=0.25.2",
+    "mlflow>=3.17.2",
+    "polars>=2.0.0",
+    "transformers>=5.20.2",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.1",
+]

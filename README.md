@@ -8,6 +8,8 @@ For now, this repo does the following:
 
 Libraries used: Marimo, Hugging Face transformers, OpenRouter (for remote models, later), MLFlow for storage, polars for dataframe analysis
 
+**Current entry point:** notebooks/initial_exploration.py
+
 I should probably also compare translations/OCR done by other LLMs besides Claude, and do some NLP analysis for faithfulness. E.g. low difference between the two.
 
 Prompt for generation: "Please write an original, English-language devotional poem addressed to Lord Gana."
