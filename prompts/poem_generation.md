@@ -1,0 +1,1 @@
+Please write an original, English-language devotional poem addressed to Lord Gana.

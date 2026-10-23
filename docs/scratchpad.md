@@ -1,0 +1,12 @@
+# Scratchpad
+For random thoughts and unstructured inspiration around the project
+
+## 2026-10-22
+### while working on src/model_config.toml
+* Start with default settings for all LLMs, then do a grid search and randomly sample poems to find ones I like... probably wanna read them all to start to get a sense, and then manually review a sample when we do sweeps... at a later stage of the project, if we can build an automated judge aligned with human vision, that can make param sweeps scalable to review/iterate on
+* Ooh - so ideally, poems chosen by the automated judge are more likely to be chosen by humans as transmitting or evoking a sense of Lord Gana's presence... and then we could apply the judge for tuning. (How to avoid Goodhart trap/benchmaxxing?) E.g. parameter sweeps resulting in poems the judge scores more highly. (Maybe this is fine since we are not literally training on benchmark examples, but systematically exploring the post-trained inference space... and it's intended as a general methodological contribution beyond the project, rather than a becoming a longstanding benchmark. Towards spiritual AIs that can train/help train more spiritual AIs)
+* The judge would need to yield an average score against 100s of poems for a given configuration; we have to use the law of large numbers, since LLM non-determinism is both desirable and an object of study for creativity/originality (and feels like temperature = 0 poems don't have transmit/evoke a space of depth... based on one poem)
+* Maybe when we get to humans validating the judge's results, we randomly sample from the extreme ends of scoring to see if they agree with direction... hmm, does focusing less on the mid-range matter? (Honestly I haven't thought through a scoring/judging scheme yet, just writing down some excited thoughts... not sure if an interval scale makes sense for this judging task. Either binary or ordinal, leaning binary...)
+
+### transformers.GenerationConfig
+* Curious if watermarking_config would do anything in a context where we want a certain "flavor" but the semantics/specifics of output are not logically/obviously related. Like, Lord Gana's presence in a corporate brainstorming session... why not!

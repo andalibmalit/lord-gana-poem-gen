@@ -1,1 +1,30 @@
-"""Stores models and parameters for generation."""
+# Stores models and parameters for generation.
+# Some params of interest: temperature, top_p, top_k, min_p, p_pen (presence penalty), r_pen (repetition_penalty) (prob always 0 for last two, for writing poems)
+# ^thanks to https://www.youtube.com/watch?v=MkaazQttbpc
+
+# Default params for all models
+[default]
+max_new_tokens = 333997
+
+# individual model 
+[[llm]]
+# might add an "alias" field, if I have to list the same model multiple times for reasoning on/off...
+name = "NousResearch/Hermes-4-14B"
+
+[[llm]]
+name = "allenai/Olmo-3-7B-Instruct"
+
+[[llm]]
+name = "allenai/Olmo-3-7B-Think"
+
+[[llm]]
+name = "swiss-ai/Apertus-v1.5-8B"
+
+[[llm]]
+name = "google/gemma-4-26B-A4B-it"
+
+[[llm]]
+name = "google/gemma-4-12B-it"
+
+[[llm]]
+name = "google/gemma-4-E4B-it"
