@@ -12,6 +12,7 @@ def _():
     from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer, GenerationConfig, MetalConfig, set_seed
     from datetime import datetime
 
+    # maybe add some openrouter models soon, see what the smartest models can do...
     return (
         AutoModelForCausalLM,
         AutoProcessor,
