@@ -1,3 +1,5 @@
+# Quantized model files
+models/
 # MLflow
 mlruns/
 mlartifacts/

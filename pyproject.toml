@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "accelerate>=1.15.0",
-    "kernels>=0.17.2",
+    "kernels>=0.16,<0.17",
     "marimo>=0.25.2",
     "mlflow>=3.17.2",
     "polars>=2.0.0",
