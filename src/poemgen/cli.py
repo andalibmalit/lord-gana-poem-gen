@@ -207,6 +207,29 @@ def cmd_models_pull(cfg: Config, args) -> int:
     return 0
 
 
+def cmd_read(cfg: Config, args) -> int:
+    from poemgen.reading import serve
+
+    load_experiment(cfg, args.experiment)  # fail early on a typo
+    serve(cfg, args.experiment, args.reveal, args.port, args.seed, not args.no_browser)
+    return 0
+
+
+def cmd_mlflow_sync(cfg: Config, args) -> int:
+    from poemgen.mlflow_sync import sync
+
+    counts = sync(cfg, args.experiments or None, args.tracking_uri)
+    if counts["backup"]:
+        print(f"Backed up the MLflow db to {counts['backup']}.")
+    print(
+        f"MLflow: {counts['created']} runs created, {counts['updated']} updated, "
+        f"{counts['unchanged']} unchanged. View with:\n"
+        "  uv run mlflow server --backend-store-uri sqlite:///mlflow.db "
+        "--artifacts-destination ./mlartifacts --port 5001"
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="poemgen", description="Generate devotional poems to Lord Gana with local models."
@@ -237,6 +260,22 @@ def build_parser() -> argparse.ArgumentParser:
     p = models.add_parser("pull", help="pull exactly the configured builds and print their digests")
     p.add_argument("keys", nargs="+", help="model keys from config/models.toml")
     p.set_defaults(func=cmd_models_pull)
+
+    p = sub.add_parser("read", help="read an experiment's poems blind, with notes and tags")
+    p.add_argument("experiment", help="experiment name")
+    p.add_argument("--reveal", action="store_true", help="show each poem's model and settings")
+    p.add_argument("--port", type=int, default=8765, help="local port (default 8765)")
+    p.add_argument("--seed", type=int, help="shuffle seed, to get the same order again")
+    p.add_argument("--no-browser", action="store_true", help="don't open a browser tab")
+    p.set_defaults(func=cmd_read)
+
+    mlflow = sub.add_parser("mlflow", help="mirror poems and notes into MLflow").add_subparsers(
+        dest="mlflow_command", required=True
+    )
+    p = mlflow.add_parser("sync", help="create runs for new poems and refresh notes")
+    p.add_argument("experiments", nargs="*", help="experiment names (default: all)")
+    p.add_argument("--tracking-uri", help="MLflow tracking URI (default: sqlite:///mlflow.db)")
+    p.set_defaults(func=cmd_mlflow_sync)
     return parser
 
 

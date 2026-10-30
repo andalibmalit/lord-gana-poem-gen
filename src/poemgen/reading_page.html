@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poem reading</title>
+<style>
+  :root {
+    --bg: #faf8f4; --fg: #26231f; --muted: #6f685e; --line: #e2ddd3;
+    --card: #ffffff; --accent: #9a4a12; --ok: #2f6b3a; --warn: #a3261d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #171614; --fg: #ebe6dd; --muted: #a39b8e; --line: #34312c;
+            --card: #1f1d1a; --accent: #e09a5f; --ok: #7cc28a; --warn: #f08a80; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line);
+           padding: 10px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; z-index: 1; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  .mode { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+  .spacer { flex: 1; }
+  .progress { color: var(--muted); font-variant-numeric: tabular-nums; }
+  button, select { font: inherit; color: var(--fg); background: var(--card); border: 1px solid var(--line);
+                   border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+  .poem-id { color: var(--muted); font: 12px ui-monospace, Menlo, Consolas, monospace; }
+  .poem { font: 19px/1.65 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+          white-space: pre-wrap; overflow-wrap: anywhere; background: var(--card);
+          border: 1px solid var(--line); border-radius: 10px; padding: 28px 32px; margin: 8px 0 20px; }
+  label { display: block; font-weight: 600; margin: 14px 0 4px; }
+  textarea, input[type=text] { width: 100%; font: inherit; color: var(--fg); background: var(--card);
+                               border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  textarea { min-height: 150px; resize: vertical; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 13px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line);
+          background: transparent; color: var(--muted); }
+  .chip.on { color: var(--accent); border-color: var(--accent); }
+  .status { font-size: 13px; color: var(--muted); min-height: 1.5em; margin-top: 8px; }
+  .status.ok { color: var(--ok); } .status.err { color: var(--warn); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 18px; }
+  .details { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 16px; }
+  .details h2 { font-size: 16px; margin: 0 0 6px; }
+  .details table { border-collapse: collapse; font-size: 13px; width: 100%; }
+  .details td { border-bottom: 1px solid var(--line); padding: 3px 8px 3px 0; vertical-align: top; }
+  .details td:first-child { color: var(--muted); white-space: nowrap; }
+  .flag { color: var(--warn); font-weight: 600; }
+  details.thinking pre { white-space: pre-wrap; font-size: 13px; background: var(--card);
+                         border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title"></h1>
+  <span class="mode" id="mode"></span>
+  <span class="spacer"></span>
+  <select id="order" hidden aria-label="Order">
+    <option value="shuffled">Shuffled</option>
+    <option value="model">By model</option>
+    <option value="settings">By settings</option>
+  </select>
+  <span class="progress" id="progress"></span>
+  <button id="prev" title="Previous (←)">← Prev</button>
+  <button id="next" title="Next (→)">Next →</button>
+  <button id="skip" title="Next poem without notes">Next unread</button>
+</header>
+<main>
+  <div class="poem-id" id="pid"></div>
+  <div class="poem" id="poem"></div>
+  <label for="note">Notes</label>
+  <textarea id="note" placeholder="What does this poem do, or not do? Does it carry presence?"></textarea>
+  <label for="tags">Tags <span class="hint">(comma-separated)</span></label>
+  <input type="text" id="tags" autocomplete="off">
+  <div class="chips" id="chips"></div>
+  <div class="status" id="status"></div>
+  <div class="details" id="details" hidden></div>
+  <p class="hint">← / → move between poems when you're not typing. Notes save when you leave a field,
+    move to another poem, or press Ctrl+Enter (⌘+Enter).</p>
+</main>
+<script>
+const DATA = /*DATA*/null;
+const $ = (id) => document.getElementById(id);
+const notes = DATA.notes || {};
+let order = DATA.poems.slice();
+let i = 0;
+let dirty = false;
+
+const storeKey = `poemgen:${DATA.experiment}:${DATA.reveal ? "reveal" : "blind"}`;
+try { const saved = JSON.parse(localStorage.getItem(storeKey) || "{}");
+      if (saved.id) i = Math.max(0, order.findIndex((p) => p.id === saved.id)); } catch (e) {}
+
+function allTags() {
+  const tags = new Set();
+  Object.values(notes).forEach((n) => (n.tags || []).forEach((t) => tags.add(t)));
+  return [...tags].sort();
+}
+function parseTags(text) { return text.split(",").map((t) => t.trim()).filter(Boolean); }
+function setStatus(text, cls) { $("status").textContent = text; $("status").className = "status " + (cls || ""); }
+
+function renderChips() {
+  const current = new Set(parseTags($("tags").value));
+  $("chips").replaceChildren(...allTags().map((t) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip" + (current.has(t) ? " on" : ""); b.textContent = t;
+    b.onclick = () => {
+      const tags = parseTags($("tags").value);
+      $("tags").value = (current.has(t) ? tags.filter((x) => x !== t) : [...tags, t]).join(", ");
+      dirty = true; save();
+    };
+    return b;
+  }));
+}
+
+function row(k, v) {
+  const tr = document.createElement("tr");
+  const a = document.createElement("td"); a.textContent = k;
+  const b = document.createElement("td"); b.textContent = v;
+  tr.append(a, b); return tr;
+}
+
+function renderDetails(p) {
+  const box = $("details");
+  if (!DATA.reveal) { box.hidden = true; return; }
+  const d = p.details; box.hidden = false; box.replaceChildren();
+  const h = document.createElement("h2"); h.textContent = `${d.model} · ${d.settings_set}`; box.append(h);
+  const t = document.createElement("table");
+  t.append(row("tag", d.tag), row("system prompt", d.system_prompt), row("think", String(d.think)),
+           row("sample", String(d.sample)), row("output tokens", String(d.tokens)));
+  Object.entries(d.options).forEach(([k, [v, origin]]) =>
+    t.append(row(k, `${JSON.stringify(v)}   (${origin || "?"})`)));
+  Object.entries(d.not_applied).forEach(([k, v]) => t.append(row(`not applied: ${k}`, v)));
+  box.append(t);
+  const flags = Object.keys(d.flags).filter((f) => f !== "has_thinking" && f !== "system_prompt_rendered");
+  if (flags.length) { const f = document.createElement("p"); f.className = "flag";
+                      f.textContent = "Flags: " + flags.join(", "); box.append(f); }
+  if (d.thinking) {
+    const det = document.createElement("details"); det.className = "thinking";
+    const s = document.createElement("summary"); s.textContent = "Thinking";
+    const pre = document.createElement("pre"); pre.textContent = d.thinking;
+    det.append(s, pre); box.append(det);
+  }
+}
+
+function show() {
+  const p = order[i];
+  $("pid").textContent = `poem ${p.id}`;
+  $("poem").textContent = p.poem;
+  const n = notes[p.id] || {};
+  $("note").value = n.note || "";
+  $("tags").value = (n.tags || []).join(", ");
+  dirty = false;
+  const done = order.filter((q) => notes[q.id]).length;
+  $("progress").textContent = `${i + 1} / ${order.length} · ${done} with notes`;
+  setStatus(n.updated ? `Saved ${new Date(n.updated).toLocaleString()}` : "");
+  renderChips(); renderDetails(p);
+  try { localStorage.setItem(storeKey, JSON.stringify({ id: p.id })); } catch (e) {}
+  window.scrollTo(0, 0);
+}
+
+async function save() {
+  if (!dirty) return true;
+  const p = order[i];
+  const body = { id: p.id, note: $("note").value, tags: parseTags($("tags").value) };
+  setStatus("Saving…");
+  try {
+    const r = await fetch("/notes", { method: "POST", headers: { "Content-Type": "application/json" },
+                                       body: JSON.stringify(body) });
+    const saved = await r.json();
+    if (!r.ok) throw new Error(saved.error || r.status);
+    if (saved.updated) notes[p.id] = saved; else delete notes[p.id];
+    dirty = false; setStatus("Saved", "ok"); renderChips();
+    const done = order.filter((q) => notes[q.id]).length;
+    $("progress").textContent = `${i + 1} / ${order.length} · ${done} with notes`;
+    return true;
+  } catch (e) { setStatus(`Not saved: ${e.message}. Is poemgen read still running?`, "err"); return false; }
+}
+
+async function go(to) { if (await save()) { i = (to + order.length) % order.length; show(); } }
+
+$("title").textContent = DATA.experiment;
+$("mode").textContent = DATA.reveal ? "reveal" : "blind";
+document.title = `${DATA.reveal ? "Reveal" : "Blind reading"}: ${DATA.experiment}`;
+$("prev").onclick = () => go(i - 1);
+$("next").onclick = () => go(i + 1);
+$("skip").onclick = () => {
+  for (let k = 1; k <= order.length; k++) {
+    const j = (i + k) % order.length;
+    if (!notes[order[j].id]) return go(j);
+  }
+  setStatus("Every poem has notes.", "ok");
+};
+["note", "tags"].forEach((id) => {
+  $(id).addEventListener("input", () => { dirty = true; setStatus("Unsaved changes"); if (id === "tags") renderChips(); });
+  $(id).addEventListener("blur", save);
+  $(id).addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); save(); } });
+});
+document.addEventListener("keydown", (e) => {
+  if (["TEXTAREA", "INPUT", "SELECT"].includes(document.activeElement.tagName)) return;
+  if (e.key === "ArrowRight") go(i + 1);
+  if (e.key === "ArrowLeft") go(i - 1);
+});
+window.addEventListener("beforeunload", (e) => { if (dirty) { save(); e.preventDefault(); } });
+if (DATA.reveal) {
+  $("order").hidden = false;
+  $("order").onchange = async () => {
+    await save();
+    const id = order[i].id;
+    const key = { model: (p) => p.details.model_key, settings: (p) => p.details.settings_set }[$("order").value];
+    order = DATA.poems.slice();
+    if (key) order.sort((a, b) => String(key(a)).localeCompare(String(key(b))));
+    i = order.findIndex((p) => p.id === id); show();
+  };
+}
+show();
+</script>
+</body>
+</html>
