@@ -24,18 +24,26 @@ module-name = "poemgen"
 
 [dependency-groups]
 dev = [
+    "hypothesis>=6.170.14",
     "pytest>=8",
     "ruff>=0.17.1",
+    "ty>=0.0.95",
+    "types-pyyaml>=6.0.12.20261030",
 ]
 
 [tool.ruff]
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "PLW1514"]
+select = ["E", "F", "I", "UP", "B", "ANN", "PLW1514"]
+# ANN: every function in src/ has type hints (ty checks them). Any is allowed for YAML/JSON data.
+ignore = ["ANN401"]
 # PLW1514 (open() without an explicit encoding) is a preview rule: enable just that one.
 preview = true
 explicit-preview-rules = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

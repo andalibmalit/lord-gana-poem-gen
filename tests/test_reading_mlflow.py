@@ -128,6 +128,7 @@ def test_mlflow_sync_is_idempotent_and_updates_notes(poems, tmp_path):
 
     client = MlflowClient(tracking_uri=uri)
     exp = client.get_experiment_by_name("poems/exp")
+    assert exp is not None
     runs = {r.data.tags["poem_id"]: r for r in client.search_runs([exp.experiment_id])}
     run = runs["bbbbbbbbbbbb"]
     assert run.data.tags["note_tags"] == "no-presence"
@@ -149,7 +150,9 @@ def test_mlflow_sync_clears_deleted_notes_and_replaces_half_synced_runs(poems, t
     assert sync(poems, tracking_uri=uri)["updated"] == 1
 
     client = MlflowClient(tracking_uri=uri)
-    exp_id = client.get_experiment_by_name("poems/exp").experiment_id
+    exp = client.get_experiment_by_name("poems/exp")
+    assert exp is not None
+    exp_id = exp.experiment_id
 
     def run_for(pid):
         return [r for r in client.search_runs([exp_id]) if r.data.tags.get("poem_id") == pid]

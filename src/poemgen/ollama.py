@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from typing import Any
 
 import httpx
 
@@ -19,7 +20,7 @@ class OllamaError(Exception):
 
 
 class Ollama:
-    def __init__(self, host: str, timeout_s: float = 3600):
+    def __init__(self, host: str, timeout_s: float = 3600) -> None:
         # Ollama is usually local: never route it through a proxy from the environment, and
         # only set up certificate checks when the host actually uses TLS.
         self.http = httpx.Client(
@@ -32,7 +33,7 @@ class Ollama:
     def close(self) -> None:
         self.http.close()
 
-    def _request(self, method: str, path: str, **kw) -> dict:
+    def _request(self, method: str, path: str, **kw: Any) -> dict:
         try:
             r = self.http.request(method, path, **kw)
         except httpx.HTTPError as e:

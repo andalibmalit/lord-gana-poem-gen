@@ -15,6 +15,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
 from pathlib import Path
+from typing import Any
 
 from poemgen import records
 from poemgen.config import Config
@@ -128,7 +129,7 @@ def make_server(
         raise ValueError(f"no poems in poems/{experiment}/")
 
     class Handler(BaseHTTPRequestHandler):
-        def log_message(self, *args) -> None:  # keep the terminal quiet
+        def log_message(self, format: str, *args: Any) -> None:  # keep the terminal quiet
             pass
 
         def _send(self, status: int, body: str, content_type: str) -> None:
@@ -147,11 +148,7 @@ def make_server(
 
         def do_POST(self) -> None:
             origin = self.headers.get("Origin")
-            host = f"{self.server.server_address[0]}:{self.server.server_address[1]}"
-            if origin and origin not in (
-                f"http://{host}",
-                f"http://localhost:{host.split(':')[1]}",
-            ):
+            if origin and origin not in allowed_origins:
                 return self._send(403, '{"error": "bad origin"}', "application/json")
             if self.path != "/notes":
                 return self._send(404, '{"error": "not found"}', "application/json")
@@ -169,7 +166,11 @@ def make_server(
                 return self._send(400, json.dumps({"error": str(e)}), "application/json")
             self._send(200, json.dumps(saved, ensure_ascii=False), "application/json")
 
-    return ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    allowed_origins: set[str] = set()
+    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    bound = server.server_port  # the real port, when port=0 picked a free one
+    allowed_origins |= {f"http://127.0.0.1:{bound}", f"http://localhost:{bound}"}
+    return server
 
 
 def serve(
@@ -182,7 +183,7 @@ def serve(
 ) -> None:
     seed = shuffle_seed if shuffle_seed is not None else random.randrange(10**6)
     server = make_server(cfg, experiment, reveal, port, seed)
-    url = f"http://127.0.0.1:{server.server_address[1]}/"
+    url = f"http://127.0.0.1:{server.server_port}/"
     mode = "reveal" if reveal else "blind"
     print(f"Reading {experiment} ({mode}, shuffle seed {seed}) at {url}")
     print(f"Notes save to {notes_path(cfg, experiment)}. Press Ctrl+C to stop.")

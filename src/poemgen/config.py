@@ -175,8 +175,8 @@ def check_options(values: dict, where: str, allow_seed: bool = False) -> dict:
     return dict(values)
 
 
-def check_think(value, where: str) -> bool | str:
-    if isinstance(value, bool) or value in THINK_LEVELS:
+def check_think(value: object, where: str) -> bool | str:
+    if isinstance(value, bool) or (isinstance(value, str) and value in THINK_LEVELS):
         return value
     raise ConfigError(
         f"{where}: think must be true, false or one of {THINK_LEVELS}, got {value!r}."

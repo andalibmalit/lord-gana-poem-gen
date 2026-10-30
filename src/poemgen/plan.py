@@ -10,6 +10,7 @@ import json
 import statistics
 from collections import defaultdict
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from poemgen import records
 from poemgen.config import Config, Experiment, Model, SettingsSet
@@ -55,7 +56,7 @@ class Plan:
         return [s for s in self.specs if s.poem_id not in self.done]
 
 
-def resolve_think(model: Model, wanted) -> bool | str | None:
+def resolve_think(model: Model, wanted: bool | str) -> bool | str | None:
     """The `think` value to send, or None if this model can't do what the settings set asks."""
     if not model.think_values:  # no thinking switch: always send false
         return False if wanted in ("default", False) else None
@@ -63,7 +64,9 @@ def resolve_think(model: Model, wanted) -> bool | str | None:
     return value if value in model.think_values else None
 
 
-def resolve_options(cfg: Config, model: Model, sset: SettingsSet, thinking_on: bool):
+def resolve_options(
+    cfg: Config, model: Model, sset: SettingsSet, thinking_on: bool
+) -> tuple[dict, dict, list[str]]:
     """Layer the settings for one model and settings set. Returns (options, origins, warnings)."""
     options: dict = {}
     origins: dict = {}
@@ -104,7 +107,7 @@ def poem_id(spec_fields: dict) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
 
 
-def load_prompt(path, variant: str) -> Prompt:
+def load_prompt(path: Path, variant: str) -> Prompt:
     text = records.read_text(path)
     return Prompt(variant, text, records.sha256_text(text))
 

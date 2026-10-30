@@ -19,7 +19,7 @@ from pathlib import Path
 from poemgen import __version__, records
 from poemgen.config import Config, Model
 from poemgen.ollama import PROVIDER, Ollama, OllamaError
-from poemgen.plan import Plan, PoemSpec
+from poemgen.plan import Plan, PoemSpec, Prompt
 
 MAX_CONSECUTIVE_FAILURES = 3
 THINK_MARKERS = re.compile(r"</?think>|<\|channel\|?>|<\|start_thinking\|>", re.IGNORECASE)
@@ -146,7 +146,7 @@ def request_body(spec: PoemSpec, cfg: Config) -> dict:
     }
 
 
-def prompt_ref(cfg: Config, prompt) -> dict:
+def prompt_ref(cfg: Config, prompt: Prompt) -> dict:
     snapshot = records.snapshot(cfg.poems_dir, "prompts", f"{prompt.sha256[:12]}.md", prompt.text)
     return {"variant": prompt.variant, "sha256": prompt.sha256, "snapshot": snapshot}
 
@@ -163,7 +163,7 @@ def flags(spec: PoemSpec, response: dict, poem: str, thinking: str) -> dict:
 
 
 class Runner:
-    def __init__(self, cfg: Config, client: Ollama, log: Callable[[str], None] = print):
+    def __init__(self, cfg: Config, client: Ollama, log: Callable[[str], None] = print) -> None:
         self.cfg, self.client, self.log = cfg, client, log
         self._lock = threading.Lock()
         self.summary = Summary()

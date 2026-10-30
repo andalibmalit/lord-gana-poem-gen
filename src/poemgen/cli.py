@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import sys
 from collections import defaultdict
 
@@ -61,7 +62,7 @@ def print_plan(cfg: Config, plan: Plan, model_status: dict[str, str] | None = No
         )
 
 
-def cmd_plan(cfg: Config, args) -> int:
+def cmd_plan(cfg: Config, args: argparse.Namespace) -> int:
     exp = load_experiment(cfg, args.experiment)
     plan = build_plan(cfg, exp, args.models)
     print_plan(cfg, plan, model_status(cfg, {s.model.key for s in plan.specs}))
@@ -91,7 +92,7 @@ def model_status(cfg: Config, keys: set[str]) -> dict[str, str]:
     return status
 
 
-def cmd_run(cfg: Config, args) -> int:
+def cmd_run(cfg: Config, args: argparse.Namespace) -> int:
     exp = load_experiment(cfg, args.experiment)
     plan = build_plan(cfg, exp, args.models)
     print_plan(cfg, plan)
@@ -143,7 +144,7 @@ def describe_build(build: Build, model: Model | None, show_template: bool) -> li
     return lines
 
 
-def cmd_models_check(cfg: Config, args) -> int:
+def cmd_models_check(cfg: Config, args: argparse.Namespace) -> int:
     targets: list[tuple[str, str, Model | None]] = [(t, t, None) for t in args.tag or []]
     keys = args.keys or ([] if args.tag else list(cfg.models))
     for key in keys:
@@ -167,7 +168,7 @@ def cmd_models_check(cfg: Config, args) -> int:
     return 1 if problems else 0
 
 
-def cmd_models_pull(cfg: Config, args) -> int:
+def cmd_models_pull(cfg: Config, args: argparse.Namespace) -> int:
     client = Ollama(cfg.machine.ollama_host, timeout_s=60)
     try:
         for key in args.keys:
@@ -183,7 +184,7 @@ def cmd_models_pull(cfg: Config, args) -> int:
             print(f"{key}: pulling {model.tag} ({_gb(build.total_bytes)})")
             last = [""]
 
-            def progress(event: dict, last=last) -> None:
+            def progress(event: dict, last: list[str] = last) -> None:
                 status = event.get("status", "")
                 if event.get("total"):
                     status += f" {100 * event.get('completed', 0) // event['total']}%"
@@ -209,7 +210,7 @@ def cmd_models_pull(cfg: Config, args) -> int:
     return 0
 
 
-def cmd_read(cfg: Config, args) -> int:
+def cmd_read(cfg: Config, args: argparse.Namespace) -> int:
     from poemgen.reading import serve
 
     load_experiment(cfg, args.experiment)  # fail early on a typo
@@ -217,7 +218,7 @@ def cmd_read(cfg: Config, args) -> int:
     return 0
 
 
-def cmd_mlflow_sync(cfg: Config, args) -> int:
+def cmd_mlflow_sync(cfg: Config, args: argparse.Namespace) -> int:
     from poemgen.mlflow_sync import sync
 
     counts = sync(cfg, args.experiments or None, args.tracking_uri)
@@ -284,7 +285,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     # Poems and prompts contain IAST diacritics: never let a console encoding crash the tool.
     for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
+        if isinstance(stream, io.TextIOWrapper):
             stream.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
     try:

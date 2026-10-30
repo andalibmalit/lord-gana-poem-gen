@@ -93,7 +93,9 @@ def run_fields(meta: dict, note: dict | None, counts: dict) -> tuple[dict, dict,
     return clean(params), clean(tags), {k: float(v) for k, v in metrics.items() if v is not None}
 
 
-def sync(cfg: Config, experiments: list[str] | None = None, tracking_uri: str | None = None):
+def sync(
+    cfg: Config, experiments: list[str] | None = None, tracking_uri: str | None = None
+) -> dict:
     """Create runs for new poems and refresh note tags on existing ones. Returns counts."""
     from mlflow import MlflowClient  # imported here: slow, and only this command needs it
     from mlflow.entities import Metric, Param, RunTag
