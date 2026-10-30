@@ -55,7 +55,7 @@ ollama_host = "http://127.0.0.1:1"
 parallel = 1
 minutes_per_poem = 2
 [num_ctx_caps]
-plain = 8192
+plain = 16384
 """
 
 EXPERIMENT = """

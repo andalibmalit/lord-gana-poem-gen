@@ -99,6 +99,17 @@ def resolve_options(
             warnings.append(f"{model.key}: num_ctx {options['num_ctx']} capped to {cap} ({by}).")
             options["num_ctx"] = cap
             origins["num_ctx"] = f"capped:{by}"
+    # Prompt + output must fit the context: past it, Ollama's llama-server shifts the context
+    # and silently drops its middle (the system prompt included).
+    room = options["num_ctx"] - cfg.prompt_reserve
+    if room < 1024:
+        raise ValueError(
+            f"{model.key}: num_ctx {options['num_ctx']} leaves under 1024 tokens of output after "
+            f"the {cfg.prompt_reserve}-token prompt reserve (defaults.toml [limits])."
+        )
+    if options["num_predict"] > room:
+        options["num_predict"] = room
+        origins["num_predict"] = "capped:num_ctx"
     return options, origins, warnings
 
 

@@ -34,16 +34,15 @@
 
 [gemma4-e4b]
 name = "Gemma 4 E4B"
-tag = "gemma4:e4b-it-q8_0"
+tag = "gemma4:e4b-it-bf16"
 upstream = "google/gemma-4-E4B-it"
-quant = "Q8_0"
+quant = "BF16"
 confirmed = true
-weights_sha256 = "sha256:38e6c022cc27cf948a903d228c4485bb221f004e7b9a34e6c076f7e7aee22592"
-ollama_digest = "3721c8128dc2e6cabed512039c22f63629c0ad6786b0fc852a9e4da47a6953f3"
+weights_sha256 = "sha256:5de0284cc165f81a26e06055702cfb07c4100319e555f2997985e210d7481b85"
 ctx_max = 131072
 think_values = [false, true]
 think_default = false
-build_notes = "Official Ollama library build (9.02 GB incl. vision projector; runner llamacpp). Q8_0: the smallest model has headroom for the best quant. No template layer: Ollama's built-in gemma4 RENDERER/PARSER build the prompt (think=true adds <|think|> to the system turn) and split thinking; no stop sequences. Shipped params match the card. Measured: 8.45 GB on GPU at num_ctx 40960."
+build_notes = "Official Ollama library build at BF16, the highest precision (16.04 GB incl. vision projector; est. ~17.5 GB at 40960). The Q8_0 build (9.02 GB, digest 3721c8128dc2) made the two smoke poems; their records keep that digest. No template layer: Ollama's built-in gemma4 RENDERER/PARSER build the prompt (think=true adds <|think|> to the system turn) and split thinking; no stop sequences. Shipped params match the card."
 description = "A small model for quick loading, code testing and experimentation."
 recommended_source = "https://huggingface.co/google/gemma-4-E4B-it (\"across all use cases\"); Ollama ships the same values"
 recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
@@ -80,14 +79,14 @@ unsupported = { dry = "DRY sampler (strength not given)" }
 
 [gemma3-12b]
 name = "Gemma 3 12B"
-tag = "gemma3:12b-it-qat"
-upstream = "google/gemma-3-12b-it-qat-q4_0-gguf"
-quant = "QAT Q4_0"
+tag = "gemma3:12b-it-q8_0"
+upstream = "google/gemma-3-12b-it"
+quant = "Q8_0"
 confirmed = true
-weights_sha256 = "sha256:dd53172ff3a7b1b16c8fb3d944b87f42a6228ff2de3825b8813ae90d988434cd"
+weights_sha256 = "sha256:993f8f8e856095b7c834aad65a4a23600ad31da3b77c2276a9b3cb70d4bd78b4"
 stop = ["<end_of_turn>"]
 think_values = []
-build_notes = "Google's quantization-aware 4-bit build via the Ollama library (8.93 GB incl. vision projector; est. 12.9 GB). Alternative: gemma3:12b-it-q8_0 (13 GB, not QAT). The template folds the system message into the first user turn (Gemma 3 has no system role). Trained context 131072."
+build_notes = "Official Ollama library build at Q8_0, the highest that fits (13.37 GB incl. 0.85 GB vision projector; est. 17.4 GB at 40960). fp16 (24.4 GB) would not fit. Q8_0 is closer to full precision than the QAT Q4_0 build. The template folds the system message into the first user turn (Gemma 3 has no system role). Trained context 131072."
 recommended_source = "Ollama gemma3:12b-it-qat params (the Google repo is gated)"
 recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
 
@@ -124,27 +123,27 @@ recommended = { temperature = 0.6, top_p = 0.95, top_k = 20 }
 
 [olmo3-7b-instruct]
 name = "Olmo 3 7B Instruct"
-tag = "olmo-3:7b-instruct-q8_0"
+tag = "olmo-3:7b-instruct-fp16"
 upstream = "allenai/Olmo-3-7B-Instruct"
-quant = "Q8_0"
+quant = "F16"
 confirmed = true
-weights_sha256 = "sha256:bf57534b98f89d7b9069af549efcda6d71db5a38508ec8a468f9a07078ee8465"
+weights_sha256 = "sha256:dd21c37a5e825ed089faa63155ef4850c324059010246ebfb6f5ed44df784006"
 think_values = []
-build_notes = "Official Ollama library build at Q8_0 (7.76 GB). Est. 15.8 GB at 40960 if Ollama caches the 24 sliding-window layers at their 4096 window; about 30 GB (too big) if not: check the first load. Trained context 65536."
+build_notes = "Official Ollama library build at full F16 precision (14.60 GB). Est. 22.6 GB at 40960 if Ollama caches the 24 sliding-window layers at their 4096 window; far too big if it doesn't (32 KV heads, no GQA): check the first load, and fall back to q8_0 or a lower num_ctx cap. Ollama 0.40 renames the olmo3 architecture to olmo2 when loading; check the first load's log for 'llama_kv_cache_iswa: creating SWA KV cache' (without it: heavy CPU offload). Trained context 65536."
 description = "AI2's fully open model: the whole training stack is public, which helps trace causes of output differences."
 recommended_source = "https://huggingface.co/allenai/Olmo-3-7B-Instruct; Ollama ships the same values"
 recommended = { temperature = 0.6, top_p = 0.95 }
 
 [olmo3-7b-think]
 name = "Olmo 3 7B Think"
-tag = "olmo-3:7b-think-q8_0"
+tag = "olmo-3:7b-think-fp16"
 upstream = "allenai/Olmo-3-7B-Think"
-quant = "Q8_0"
+quant = "F16"
 confirmed = true
-weights_sha256 = "sha256:47f6bfb84bc9017adec109cdbeb6769709def090f869cc5a53e78ab4924d2a15"
+weights_sha256 = "sha256:d3cf8cc6528cf8b1c9040377a179dc41591b8bedbcc59a1a8cffab1017ddf937"
 think_values = [true]
 think_default = true
-build_notes = "Official Ollama library build at Q8_0 (7.76 GB); always thinks. Same memory caveat as Olmo 3 Instruct. Trained context 65536."
+build_notes = "Official Ollama library build at full F16 precision (14.60 GB); always thinks. Same memory caveat as Olmo 3 Instruct. Ollama 0.40 renames the olmo3 architecture to olmo2 when loading; check the first load's log for 'llama_kv_cache_iswa: creating SWA KV cache' (without it: heavy CPU offload). Trained context 65536."
 description = "The reasoning counterpart of Olmo 3 7B Instruct; always thinks."
 recommended_source = "https://huggingface.co/allenai/Olmo-3-7B-Think; Ollama ships the same values"
 recommended = { temperature = 0.6, top_p = 0.95 }
@@ -185,20 +184,20 @@ confirmed = true
 weights_sha256 = "sha256:0374ce7b0124db9ba96fc649e835c531223ee224a497ce88a374baaea10932ec"
 think_values = [false, true]
 think_default = false
-build_notes = "Official QAT 4-bit via the Ollama library (18.86 GB incl. vision projector; est. 24.1 GB at 40960, the largest Gemma 4 that fits). Alternative: q4_K_M (20 GB, about 25 GB total, too tight)."
+build_notes = "Official QAT 4-bit via the Ollama library (18.86 GB incl. vision projector; est. 24.1 GB at 40960, the largest Gemma 4 that fits). Tightest model: llama-server's accounting gives ~21.6 GB needed vs ~22.0 GB available after the vision margin (KV 4.4 GB; Gemma 4 keeps V separate even with attention_k_eq_v). If layers spill to the CPU on first load, cap num_ctx at 32768 in machine.toml. Alternative: q4_K_M (20.4 GB) doesn't fit."
 recommended_source = "https://huggingface.co/google/gemma-4-31B-it; Ollama ships the same values"
 recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
 
 [gemma3-27b]
 name = "Gemma 3 27B"
-tag = "gemma3:27b-it-qat"
-upstream = "google/gemma-3-27b-it-qat-q4_0-gguf"
-quant = "QAT Q4_0"
+tag = "hf.co/mradermacher/gemma-3-27b-it-i1-GGUF:Q5_K_M"
+upstream = "google/gemma-3-27b-it"
+quant = "i1-Q5_K_M (imatrix)"
 confirmed = true
-weights_sha256 = "sha256:7b131f721b95bd06ef4066e18ed2febed15ad6620f61c6eaf37832837ca109fe"
+weights_sha256 = "sha256:686204459e882a1bed12a9bcbf489048f8dee64d284e589d06fdd34e9890a6c6"
 stop = ["<end_of_turn>"]
 think_values = []
-build_notes = "Google's QAT 4-bit via the Ollama library (18.09 GB incl. vision projector; est. 22.9 GB). Same template and params blobs as Gemma 3 12B: the system message is folded into the first user turn. Check the first load: if Ollama caches the sliding-window layers at full length, it won't fit at 40960."
+build_notes = "Imatrix Q5_K_M, the highest that fits (19.27 GB, text only: no vision projector; est. 24.1 GB at 40960). i1-Q6_K (22.17 GB) would be about 27 GB. Chosen over the Ollama QAT Q4_0 build (18.09 GB) for higher precision; Gemma 3 has no thinking, so nothing is lost. The GGUF ships a Go template. Check the first load: if Ollama caches the sliding-window layers at full length, it won't fit at 40960."
 recommended_source = "Ollama gemma3:27b-it-qat params (identical to the 12B's; Google's repo is gated)"
 recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
 
@@ -217,40 +216,40 @@ recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
 
 ["qwen3.8-27b"]
 name = "Qwen3.8-27B"
-tag = "qwen3.8:27b-q4_K_M"
+tag = "hf.co/mradermacher/Qwen3.8-27B-i1-GGUF:Q6_K"
 upstream = "Qwen/Qwen3.8-27B"
-quant = "Q4_K_M"
+quant = "i1-Q6_K (imatrix)"
 confirmed = true
-weights_sha256 = "sha256:f5f1dd8920d417aac2718b0bda3403da274301efdd6760b4f0f4b864ff2ad57d"
+weights_sha256 = "sha256:36eed101e31c5c29b9a3be20b4f5f308010fce488287620a1ca73266ab86abfb"
 think_values = [false, true]
 think_default = true
-build_notes = "Official Ollama library build (17.74 GB incl. 0.93 GB vision projector; est. 21.4 GB: hybrid attention, only 16 of 64 layers keep a KV cache). Built-in qwen3.5 renderer. Alternative: hf.co/unsloth/Qwen3.8-27B-GGUF:UD-Q5_K_M (19.77 GB, est. 24.4 GB), a larger quant at the same quant level as the Qwen3.5 fine-tunes below; template not checked. Thinking levels (low/medium/xhigh) via Ollama unverified."
+build_notes = "Imatrix Q6_K, the highest that fits (22.43 GB, text only; about 23.1 GB on the GPU with 2.5 GB KV: hybrid attention, only 16 of 64 layers keep a KV cache; ~1.3 GB spare). Fit per llama-server's own accounting (adversarial review of ~/.ollama/logs/server.log, 30 Oct): text-only models get about 24.4 GB for weights + KV + ~0.25 GB compute; check the first load's 'common_params_fit_impl ... will leave' log line. Same quant level as Hemmingway-1.5, which is built on it. No template layer, so Ollama renders the GGUF's own chat template (as for Hemmingway, where think and reasoning levels worked); the alternatives were the Ollama library build (Q4_K_M) and unsloth's UD-Q5_K_M (its template pre-closes the think block). think_values to confirm after the pull with `pytest -m ollama`."
 recommended_source = "https://huggingface.co/Qwen/Qwen3.8-27B (Ollama ships the thinking-mode set)"
 recommended = { temperature = 0.7, top_p = 0.8, top_k = 20, min_p = 0.0, presence_penalty = 1.5, repeat_penalty = 1.0, thinking = { temperature = 1.0, top_p = 0.95, presence_penalty = 0.0 } }
 
 [hemmingway-1]
 name = "Hemmingway-1"
-tag = "hf.co/bartowski/Altworld_Hemmingway-1-GGUF:Q4_K_M"
+tag = "hf.co/bartowski/Altworld_Hemmingway-1-GGUF:Q5_K_M"
 upstream = "HemmingwayAI/Hemmingway-1"
-quant = "Q4_K_M (imatrix)"
+quant = "Q5_K_M (imatrix)"
 confirmed = true
-weights_sha256 = "sha256:c029ba6cc24bc022a65d00e4d81796ff0bd678e371a36c9a7d1119a0acc7085e"
+weights_sha256 = "sha256:b0ebd5bab0919114303dfb20d8e517fdd75d92a8d20ffa8005b5de54abc05f2e"
 think_values = [false, "low", "medium", true]
 think_default = true
-build_notes = "Already downloaded (17.44 GB; est. 21.3 GB). Lineage confirmed: Altworld/Hemmingway-1 is the old name of HemmingwayAI/Hemmingway-1 (the HF API resolves both to the same repo and commit faba574); base_model Qwen/Qwen3.8-27B. Ollama renders the GGUF's own chat template (rendered-prompt test): think=false prefills an empty <think></think>; 'low' and true (= the card's xhigh) prepend a 'Reasoning effort is set to ...' paragraph to the system prompt; 'medium' adds nothing; 'high' and 'max' crash the template. Larger alternative: :Q5_K_M (20.92 GB, est. 24.8 GB)."
+build_notes = "Imatrix Q5_K_M, the highest that fits (20.92 GB; about 22.1 GB on the GPU); bartowski's Q6_K would overflow by ~40 MB. Fit per llama-server's own accounting (adversarial review of ~/.ollama/logs/server.log, 30 Oct): text-only models get about 24.4 GB for weights + KV + ~0.25 GB compute; check the first load's 'common_params_fit_impl ... will leave' log line. The Q4_K_M build on disk (17.44 GB) is no longer used. Lineage confirmed: Altworld/Hemmingway-1 is the old name of HemmingwayAI/Hemmingway-1 (the HF API resolves both to the same repo and commit faba574); base_model Qwen/Qwen3.8-27B. License probably CC BY-NC 4.0 like 1.5 (unverified). Ollama renders the GGUF's own chat template (rendered-prompt test on the Q4_K_M build): think=false prefills an empty <think></think>; 'low' and true (= the card's xhigh) prepend a 'Reasoning effort is set to ...' paragraph to the system prompt; 'medium' adds nothing; 'high' and 'max' crash the template."
 inherited_source = "Qwen/Qwen3.8-27B, the base model (the Hemmingway-1 card states none; its generation_config has temp 1.0, top_k 20, top_p 0.95)"
 inherited = { temperature = 0.7, top_p = 0.8, top_k = 20, min_p = 0.0, presence_penalty = 1.5, repeat_penalty = 1.0, thinking = { temperature = 1.0, top_p = 0.95, presence_penalty = 0.0 } }
 
 ["hemmingway-1.5"]
 name = "Hemmingway-1.5"
-tag = "hf.co/mradermacher/Hemmingway-1.5-i1-GGUF:Q4_K_M"
+tag = "hf.co/mradermacher/Hemmingway-1.5-i1-GGUF:Q6_K"
 upstream = "HemmingwayAI/Hemmingway-1.5"
-quant = "i1-Q4_K_M (imatrix)"
+quant = "i1-Q6_K (imatrix)"
 confirmed = true
-weights_sha256 = "sha256:bcacde69f2ee5f6277de55769548e4d5951a06abdb63f6429d25a6aef1be88a0"
+weights_sha256 = "sha256:4b9109d1da6bb02f378f818b98df397ba9830ffc1d86d7934a949066aa995833"
 think_values = [false, "low", "medium", true]
 think_default = true
-build_notes = "Ran fine locally on 30 Oct (16.81 GB; est. 20.7 GB); since removed from disk, so it needs a fresh download. base_model HemmingwayAI/Hemmingway-1.5, a finetune of Hemmingway-1. Thinking as Hemmingway-1 (rendered-prompt test): the card's off / low / medium / extra-high are false / 'low' / 'medium' / true. Larger alternative: i1 :Q5_K_M (19.54 GB, est. 23.4 GB)."
+build_notes = "Imatrix Q6_K, the highest that fits (22.43 GB; about 23.1 GB on the GPU, ~1.3 GB spare). Fit per llama-server's own accounting (adversarial review of ~/.ollama/logs/server.log, 30 Oct): text-only models get about 24.4 GB for weights + KV + ~0.25 GB compute; check the first load's 'common_params_fit_impl ... will leave' log line. The i1-Q4_K_M build ran fine on 30 Oct and was removed from disk. base_model HemmingwayAI/Hemmingway-1.5, a finetune of Hemmingway-1. License CC BY-NC 4.0 (non-commercial, attribution). Thinking as Hemmingway-1 (rendered-prompt test): the card's off / low / medium / extra-high are false / 'low' / 'medium' / true."
 recommended_source = "https://huggingface.co/HemmingwayAI/Hemmingway-1.5 (\"lower temperatures make its writing easier to detect\")"
 recommended = { temperature = 1.0 }
 inherited_source = "HemmingwayAI/Hemmingway-1.5 generation_config.json"
@@ -258,41 +257,41 @@ inherited = { top_p = 0.95, top_k = 20 }
 
 [writer-v2-27b]
 name = "Writer-V2 (Qwen3.5-27B)"
-tag = "hf.co/mradermacher/Qwen3.5-27B-Writer-V2-i1-GGUF:Q5_K_M"
+tag = "hf.co/mradermacher/Qwen3.5-27B-Writer-V2-i1-GGUF:Q6_K"
 upstream = "ConicCat/Qwen3.5-27B-Writer-V2"
-quant = "i1-Q5_K_M (imatrix)"
+quant = "i1-Q6_K (imatrix)"
 confirmed = true
-weights_sha256 = "sha256:aafca1a7f8929d2c7d8676152afae3cd0fdcf12e1e0fb239fe4448a760197a9c"
+weights_sha256 = "sha256:1781e57fc40915998723b092281e64dc0d4ab0f14ca184c6bd9b62a1e2c652f5"
 think_values = [false, true]
 think_default = false
-build_notes = "Imatrix Q5_K_M: the largest quant that fits comfortably (19.23 GB; est. 23.1 GB; Q6_K would leave under 1 GB). base_model ConicCat/Qwen3.5-27B-Writer-V2 (via ConicCat/Qwen3.5-Antirep-27B from Qwen/Qwen3.5-27B). The card's empty think prefill matches what the GGUF template renders for think=false (as in the Hemmingway test); confirm with the rendered prompt on first run."
+build_notes = "Imatrix Q6_K, the highest that fits (22.08 GB; about 22.8 GB on the GPU, ~1.6 GB spare). Fit per llama-server's own accounting (adversarial review of ~/.ollama/logs/server.log, 30 Oct): text-only models get about 24.4 GB for weights + KV + ~0.25 GB compute; check the first load's 'common_params_fit_impl ... will leave' log line. base_model ConicCat/Qwen3.5-27B-Writer-V2 (via ConicCat/Qwen3.5-Antirep-27B from Qwen/Qwen3.5-27B). The card's empty think prefill matches what the GGUF template renders for think=false (as in the Hemmingway test); confirm with the rendered prompt on first run."
 recommended_source = "https://huggingface.co/ConicCat/Qwen3.5-27B-Writer-V2"
 recommended = { temperature = 0.7, top_p = 0.95 }
 unsupported = { dry = "DRY sampler, about 0.4-0.8" }
 
 [marvin-dpo-v2-27b]
 name = "Marvin-DPO-V2 (Qwen3.5-27B)"
-tag = "hf.co/mradermacher/Qwen3.5-27B-Marvin-DPO-V2-i1-GGUF:Q5_K_M"
+tag = "hf.co/mradermacher/Qwen3.5-27B-Marvin-DPO-V2-i1-GGUF:Q6_K"
 upstream = "ToastyPigeon/Qwen3.5-27B-Marvin-DPO-V2"
-quant = "i1-Q5_K_M (imatrix)"
+quant = "i1-Q6_K (imatrix)"
 confirmed = true
-weights_sha256 = "sha256:60ddb756fa44c7362fdfbf5a08913ec24a55d054080c7e849f7de5cf0daf83f3"
+weights_sha256 = "sha256:e53724b9500c4267dd368812ba9c5f09941433733fa3b8df134c03c6f0b1e530"
 think_values = [false, true]
 think_default = false
-build_notes = "Imatrix Q5_K_M (19.23 GB; est. 23.1 GB). Lineage: DPO of Marvin-V2, built on ArliAI/Qwen3.5-27B-Derestricted (not stock Qwen3.5); DPO covered only text after </think>. The card suppresses thinking via an empty think prefill, which think=false renders."
+build_notes = "Imatrix Q6_K, the highest that fits (22.08 GB; about 22.8 GB on the GPU, ~1.6 GB spare). Fit per llama-server's own accounting (adversarial review of ~/.ollama/logs/server.log, 30 Oct): text-only models get about 24.4 GB for weights + KV + ~0.25 GB compute; check the first load's 'common_params_fit_impl ... will leave' log line. Lineage: DPO of Marvin-V2, built on ArliAI/Qwen3.5-27B-Derestricted (not stock Qwen3.5); DPO covered only text after </think>. The card suppresses thinking via an empty think prefill, which think=false renders."
 recommended_source = "https://huggingface.co/ToastyPigeon/Qwen3.5-27B-Marvin-DPO-V2"
 recommended = { temperature = 0.8, top_p = 0.9 }
 
 [musica-27b]
 name = "Musica (Qwen3.5-27B)"
-tag = "hf.co/mradermacher/TQ3.5-27B-Musica-v1-i1-GGUF:Q5_K_M"
+tag = "hf.co/mradermacher/TQ3.5-27B-Musica-v1-i1-GGUF:Q6_K"
 upstream = "AuriAetherwiing/TQ3.5-27B-Musica-v1"
-quant = "i1-Q5_K_M (imatrix)"
+quant = "i1-Q6_K (imatrix)"
 confirmed = true
-weights_sha256 = "sha256:3fcd98e83221750d95c11fbb35998735317e381f723199192a5795154605b9a3"
+weights_sha256 = "sha256:3d4c1373cc223e1d678ffb32bdcdc524ddf90bf962467df3cc29869d50ef6397"
 think_values = [false, true]
 think_default = false
-build_notes = "Imatrix Q5_K_M without a vision projector (19.23 GB; est. 23.1 GB). Alternative: bartowski Q4_K_M (18.46 GB incl. a 0.93 GB projector). Lineage: rank-64 LoRA on ArliAI/Qwen3.5-27B-Derestricted; mostly roleplay plus some fiction data. Supports thinking and non-thinking."
+build_notes = "Imatrix Q6_K, the highest that fits (22.08 GB; about 22.8 GB on the GPU, ~1.6 GB spare). Fit per llama-server's own accounting (adversarial review of ~/.ollama/logs/server.log, 30 Oct): text-only models get about 24.4 GB for weights + KV + ~0.25 GB compute; check the first load's 'common_params_fit_impl ... will leave' log line. Lineage: rank-64 LoRA on ArliAI/Qwen3.5-27B-Derestricted; mostly roleplay plus some fiction data. Supports thinking and non-thinking. No vision projector (bartowski's builds ship one)."
 recommended_source = "https://huggingface.co/AuriAetherwiing/TQ3.5-27B-Musica-v1"
 recommended = { temperature = 1.0, min_p = 0.02 }
 unsupported = { top_n_sigma = "top-nσ 2" }
@@ -326,14 +325,14 @@ recommended = { temperature = 1.0, top_p = 0.95 }
 
 ["hermes4.3-36b"]
 name = "Hermes 4.3 36B"
-tag = "hf.co/bartowski/NousResearch_Hermes-4.3-36B-GGUF:Q3_K_M"
+tag = "hf.co/bartowski/NousResearch_Hermes-4.3-36B-GGUF:IQ4_XS"
 upstream = "NousResearch/Hermes-4.3-36B"
-quant = "Q3_K_M (imatrix)"
+quant = "IQ4_XS (imatrix)"
 confirmed = true
-weights_sha256 = "sha256:bcbbaf3e1f2e1789c0e440f85e5bdfe239bbc9d45536222e038420f71d676be2"
+weights_sha256 = "sha256:c605ca44197629a5817bba5cd5c142c50ef12bbb3f19e37b8c2ba3e6691fa656"
 stop = ["<|start_header_id|>", "<|end_header_id|>", "<|eot_id|>", "<|start_header_id|>user<|end_header_id|>"]
 think_values = []
-build_notes = "Imatrix Q3_K_M (17.62 GB), with num_ctx capped to 24576 in machine.toml (est. 25.1 GB; fits up to about 31k). Same template as the official NousResearch Q3_K_M. The downloaded Q4_K_M (21.8 GB) fits only up to about 15k context. Base: ByteDance-Seed/Seed-OSS-36B-Base. Llama-3-style template without thinking logic."
+build_notes = "Imatrix IQ4_XS (19.50 GB), with num_ctx capped to 20480 in machine.toml: about 23.6 GB on the GPU (5.1 GB KV). Fit per llama-server's own accounting (adversarial review of ~/.ollama/logs/server.log, 30 Oct): text-only models get about 24.4 GB for weights + KV + ~0.25 GB compute; check the first load's 'common_params_fit_impl ... will leave' log line. Trades context for precision over Q3_K_M at 24576: this template has no thinking, so ~8k tokens of output room is ample. The downloaded Q4_K_M (21.8 GB) would need num_ctx ≤ 12288. Base: ByteDance-Seed/Seed-OSS-36B-Base. Llama-3-style template without thinking logic."
 recommended_source = "https://huggingface.co/NousResearch/Hermes-4.3-36B (one set for both modes)"
 recommended = { temperature = 0.6, top_p = 0.95, top_k = 20 }
 
@@ -345,6 +344,6 @@ quant = "Q3_K_M (imatrix)"
 confirmed = true
 weights_sha256 = "sha256:c49f0aab126b660dc183dcd1685cc46cb46c450cf1edf348d9a154f886d14ee1"
 think_values = []
-build_notes = "Imatrix Q3_K_M (17.62 GB), num_ctx capped to 24576 in machine.toml (est. 25.1 GB). No template or params layer: Ollama renders the GGUF's own template, to confirm via the rendered prompt on first run. Thinking is on with an unlimited budget by default; Ollama can't pass thinking_budget. think_values to confirm against Ollama's capabilities after the pull."
+build_notes = "Imatrix Q3_K_M (17.62 GB), num_ctx capped to 24576 in machine.toml (about 22.9 GB on the GPU). Fit per llama-server's own accounting (adversarial review of ~/.ollama/logs/server.log, 30 Oct): text-only models get about 24.4 GB for weights + KV + ~0.25 GB compute; check the first load's 'common_params_fit_impl ... will leave' log line. No template or params layer: Ollama renders the GGUF's own template, to confirm via the rendered prompt on first run. Thinking is on with an unlimited budget and appears as <seed:think> tags, which Ollama probably leaves in the poem text (flagged as thinking_in_content). Ollama can't pass thinking_budget. With num_predict capped to num_ctx minus the prompt reserve (12288 tokens), long thinking ends as truncated rather than overflowing. think_values to confirm against Ollama's capabilities after the pull."
 recommended_source = "https://huggingface.co/ByteDance-Seed/Seed-OSS-36B-Instruct (\"We recommend sampling with temperature=1.1 and top_p=0.95\")"
 recommended = { temperature = 1.1, top_p = 0.95 }

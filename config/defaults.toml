@@ -14,3 +14,10 @@ presence_penalty = 0.0   # 0 = off
 frequency_penalty = 0.0  # 0 = off
 num_ctx = 40960          # context window: must hold the 5-8k-token system prompt + output
 num_predict = 32768      # output cap (thinking + poem): a runaway guard, not a target
+
+[limits]
+# Tokens kept free for the prompt (system prompts are ~5-8k tokens). num_predict is capped
+# to num_ctx minus this, so prompt + output always fit: Ollama starts llama-server with
+# context shifting on, which would otherwise silently drop the middle of the context
+# (including the system prompt) on long generations.
+prompt_reserve_tokens = 12288

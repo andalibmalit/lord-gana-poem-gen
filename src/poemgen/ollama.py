@@ -55,6 +55,10 @@ class Ollama:
     def show(self, model: str) -> dict:
         return self._request("POST", "/api/show", json={"model": model})
 
+    def loaded_names(self) -> list[str]:
+        """Models currently loaded in memory (/api/ps)."""
+        return [m.get("name", "") for m in self._request("GET", "/api/ps").get("models", [])]
+
     def loaded(self, model: str) -> dict | None:
         """The /api/ps entry for a loaded model (size, size_vram, context_length...)."""
         for m in self._request("GET", "/api/ps").get("models", []):

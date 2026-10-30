@@ -56,8 +56,21 @@ def test_num_ctx_caps(cfg):
     small = spec(plan, "small", "base")
     assert small.options["num_ctx"] == 32768 and small.origins["num_ctx"] == "capped:ctx_max"
     plain = spec(plan, "plain", "base")
-    assert plain.options["num_ctx"] == 8192 and plain.origins["num_ctx"] == "capped:machine"
+    assert plain.options["num_ctx"] == 16384 and plain.origins["num_ctx"] == "capped:machine"
     assert any("capped" in w for w in plan.warnings)
+    # Prompt + output must fit the context: num_predict = num_ctx - prompt reserve.
+    assert plain.options["num_predict"] == 16384 - 12288
+    assert plain.origins["num_predict"] == "capped:num_ctx"
+    assert small.options["num_predict"] == 32768 - 12288
+
+
+def test_context_too_small_for_the_prompt_reserve(repo):
+    path = repo / "config" / "machine.toml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("plain = 16384", "plain = 12000"), encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="prompt reserve"):
+        plan_for(load_config(repo))
 
 
 def test_seeds_shared_across_settings_and_distinct_across_samples(cfg):

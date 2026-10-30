@@ -106,6 +106,7 @@ class Config:
     defaults: dict
     models: dict[str, Model]
     machine: Machine
+    prompt_reserve: int  # tokens kept free for the prompt when capping num_predict
 
     @property
     def poems_dir(self) -> Path:
@@ -254,7 +255,12 @@ def _machine(path: Path) -> Machine:
 
 def load_config(root: Path | None = None, machine_path: Path | str | None = None) -> Config:
     root = root or find_root()
-    defaults = check_options(read_toml(root / "config" / "defaults.toml"), "defaults.toml")
+    defaults = read_toml(root / "config" / "defaults.toml")
+    limits = defaults.pop("limits", {})
+    prompt_reserve = limits.get("prompt_reserve_tokens", 12288)
+    if not isinstance(prompt_reserve, int) or prompt_reserve < 0:
+        raise ConfigError("defaults.toml: limits.prompt_reserve_tokens must be a whole number.")
+    defaults = check_options(defaults, "defaults.toml")
     missing = OPTION_NAMES - NOT_IN_DEFAULTS - defaults.keys()
     if missing:
         raise ConfigError(f"defaults.toml must set every option; missing: {sorted(missing)}.")
@@ -268,7 +274,9 @@ def load_config(root: Path | None = None, machine_path: Path | str | None = None
     unknown = set(machine.num_ctx_caps) - models.keys()
     if unknown:
         raise ConfigError(f"machine num_ctx_caps names unknown models: {sorted(unknown)}.")
-    return Config(root=root, defaults=defaults, models=models, machine=machine)
+    return Config(
+        root=root, defaults=defaults, models=models, machine=machine, prompt_reserve=prompt_reserve
+    )
 
 
 def experiment_path(cfg: Config, name_or_path: str) -> Path:

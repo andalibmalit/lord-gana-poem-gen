@@ -25,9 +25,10 @@ minutes_per_poem = 3      # time estimate for models with no poems yet
 OLLAMA_NUM_PARALLEL = ""      # parallel slots (default 1); keep `parallel` above equal to it
 OLLAMA_KV_CACHE_TYPE = ""     # context-cache precision (default f16; q8_0 / q4_0 change outputs)
 OLLAMA_FLASH_ATTENTION = ""   # attention kernel (changes the arithmetic slightly)
+LLAMA_ARG_CACHE_RAM = ""      # llama-server prompt cache in system RAM (default 8 GiB): set 0, see README
 
 # Largest num_ctx this machine can hold for a model (weights + context within the budget).
-# Estimates from docs/prd.md and the build research; check them on the first load.
+# From llama-server's own memory accounting (adversarial review, 30 Oct); check them on the first load.
 [num_ctx_caps]
-"hermes4.3-36b" = 24576
+"hermes4.3-36b" = 20480
 "seed-oss-36b" = 24576

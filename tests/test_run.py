@@ -36,8 +36,11 @@ class FakeOllama:
             "parameters": 'stop                           "<end>"' if model == "small:q8" else None,
             "capabilities": ["completion", "thinking"] if model == "small:q8" else ["completion"],
             "details": {"quantization_level": "Q8_0", "family": "fake"},
-            "model_info": {"fake.context_length": 32768 if model == "small:q8" else 8192},
+            "model_info": {"fake.context_length": 32768 if model == "small:q8" else 16384},
         }
+
+    def loaded_names(self):
+        return ["other:7b"]
 
     def loaded(self, model):
         return {"size": 10, "size_vram": 10, "context_length": 4096}
@@ -116,7 +119,7 @@ def test_writes_complete_records(cfg):
     assert records.read_text(snapshot) == hot.system.text
     modelfile = records.read_text(cfg.poems_dir / meta["model"]["modelfile"])
     assert "/home/me" not in modelfile and WEIGHTS in modelfile
-    assert client.unloaded == ["small:q8"]
+    assert client.unloaded == ["other:7b", "small:q8"]  # freed memory first, then done
     # The request sent to Ollama carried every option and the full prompts.
     sent = client.requests[0]
     assert sent["messages"][0]["content"].startswith(("Oṃ", "Prompt B"))
@@ -160,7 +163,7 @@ def test_flags(cfg):
     _, summary = run(cfg, FakeOllama(content="<think>hmm</think> A poem"), ["plain"])
     meta, _ = records.load_poem(next(records.poem_files(cfg.poems_dir, "exp")))
     assert meta["flags"]["thinking_in_content"] and not meta["flags"]["has_thinking"]
-    assert meta["request"]["options"]["num_ctx"] == 8192
+    assert meta["request"]["options"]["num_ctx"] == 16384
 
 
 def test_parse_stop_and_redact():

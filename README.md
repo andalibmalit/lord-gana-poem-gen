@@ -10,7 +10,10 @@ User prompt: "Please write an original, English-language devotional poem address
 2. Edit `config/machine.toml` for your machine: Ollama host, GPU memory, per-model context caps.
 3. Pull the models you want, exactly as configured: `uv run poemgen models pull gemma4-e4b`. It prints the digests to record in `config/models.toml` (`ollama_digest`).
 
-**Ollama server settings.** `OLLAMA_NUM_PARALLEL` (default 1) applies to every model and multiplies its context memory. Keep it at 1 for the large models, and set `parallel` in `machine.toml` to the same value.
+**Ollama server settings.** These are environment variables of the Ollama server, not per-request options. Record whatever you set in `machine.toml` under `[ollama_env]`.
+- `OLLAMA_NUM_PARALLEL` (default 1) applies to every model and multiplies its context memory. Keep it at 1 for the large models, and set `parallel` in `machine.toml` to the same value.
+- `LLAMA_ARG_CACHE_RAM=0` is recommended on a 32 GB machine. Ollama's llama.cpp engine otherwise keeps up to 8 GiB of prompt cache in system RAM next to a ~24 GB GPU working set, which can push the machine into swap. For the macOS app, run `launchctl setenv LLAMA_ARG_CACHE_RAM 0` and restart Ollama. That Ollama passes this variable on to its engine comes from reading its source, not from a test.
+- Output length is capped so the prompt plus output always fit the context (`[limits]` in `config/defaults.toml`). Otherwise the engine would silently drop the middle of the context, including the system prompt, on very long generations.
 
 ## Everyday loop
 

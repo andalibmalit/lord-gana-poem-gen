@@ -22,7 +22,9 @@ from poemgen.ollama import PROVIDER, Ollama, OllamaError
 from poemgen.plan import Plan, PoemSpec, Prompt
 
 MAX_CONSECUTIVE_FAILURES = 3
-THINK_MARKERS = re.compile(r"</?think>|<\|channel\|?>|<\|start_thinking\|>", re.IGNORECASE)
+THINK_MARKERS = re.compile(
+    r"</?(?:seed:)?think>|<\|channel\|?>|<\|start_thinking\|>", re.IGNORECASE
+)
 FROM_BLOB = re.compile(r"^FROM (.*?)(sha256[-:])([0-9a-f]{64})\s*$", re.MULTILINE)
 
 
@@ -191,6 +193,7 @@ class Runner:
             by_model.setdefault(spec.model.key, []).append(spec)
         for key, specs in by_model.items():
             model = self.cfg.models[key]
+            self._unload_others(model.tag)
             try:
                 info = preflight(self.cfg, self.client, model, local)
             except (Refused, OllamaError) as e:
@@ -209,6 +212,16 @@ class Runner:
                 except OllamaError:
                     pass
         return self.summary
+
+    def _unload_others(self, tag: str) -> None:
+        """Free memory before a model loads: another loaded model can force CPU offload."""
+        try:
+            for name in self.client.loaded_names():
+                if name != tag:
+                    self.client.unload(name)
+                    self.log(f"unloaded {name} to free memory")
+        except OllamaError as e:
+            self.log(f"warning: couldn't check loaded models: {e}")
 
     def _run_model(self, model: Model, info: ModelInfo, specs: list[PoemSpec]) -> None:
         consecutive = 0 if self.generate(specs[0], info, capture_memory=True) else 1
