@@ -28,9 +28,13 @@ name = "Gemma 4 E4B"
 tag = "gemma4:e4b-it-q8_0"
 upstream = "google/gemma-4-E4B-it"
 quant = "Q8_0"
-confirmed = false
+confirmed = true
+weights_sha256 = "sha256:38e6c022cc27cf948a903d228c4485bb221f004e7b9a34e6c076f7e7aee22592"
+ollama_digest = "3721c8128dc2e6cabed512039c22f63629c0ad6786b0fc852a9e4da47a6953f3"
+ctx_max = 131072
 think_values = [false, true]
 think_default = false
+build_notes = "Official Ollama library build (9.02 GB incl. vision projector; runner llamacpp). Q8_0: the smallest model has headroom for the best quant. No template layer: Ollama's built-in gemma4 RENDERER/PARSER build the prompt and split thinking; no stop sequences. Shipped params match the card."
 description = "A small model for quick loading, code testing and experimentation."
 recommended_source = "https://huggingface.co/google/gemma-4-E4B-it (\"across all use cases\"); Ollama ships the same values"
 recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
