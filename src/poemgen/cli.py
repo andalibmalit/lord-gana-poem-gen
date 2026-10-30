@@ -192,7 +192,9 @@ def cmd_models_pull(cfg: Config, args) -> int:
                     last[0] = status
 
             client.pull(model.tag, progress)
-            digest = client.tags()[model.tag]
+            digest = client.tags().get(model.tag)
+            if digest is None:
+                raise OllamaError(f"{key}: pulled, but Ollama doesn't list {model.tag}")
             _, weights = redact_modelfile(client.show(model.tag).get("modelfile", ""))
             if weights != build.weights_sha256:
                 print(
@@ -288,7 +290,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         cfg = load_config(machine_path=args.machine)
         return args.func(cfg, args)
-    except (ConfigError, ValueError) as e:
+    except (ConfigError, ValueError, LookupError, OllamaError, httpx.HTTPError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
 

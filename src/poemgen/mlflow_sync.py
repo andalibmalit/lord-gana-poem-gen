@@ -16,7 +16,6 @@ from poemgen import records
 from poemgen.config import Config
 from poemgen.reading import load_notes
 
-DEFAULT_TRACKING_URI = "sqlite:///mlflow.db"
 MAX_TAG = 5000
 
 
@@ -68,9 +67,9 @@ def run_fields(meta: dict, note: dict | None) -> tuple[dict, dict, dict]:
     tags |= {f"flag.{k}": v for k, v in (meta.get("flags") or {}).items()}
     tags |= {f"origin.{k}": v for k, v in (meta.get("origins") or {}).items()}
     tags |= {f"not_applied.{k}": v for k, v in (meta.get("not_applied") or {}).items()}
-    if note:
-        tags["note"] = note.get("note", "")[:MAX_TAG]
-        tags["note_tags"] = ", ".join(note.get("tags", []))
+    # Always set, so clearing a note on the reading page clears it here too.
+    tags["note"] = (note or {}).get("note", "")[:MAX_TAG]
+    tags["note_tags"] = ", ".join((note or {}).get("tags", []))
     memory = meta.get("memory") or {}
     metrics = {
         "prompt_tokens": response.get("prompt_eval_count"),
@@ -91,7 +90,8 @@ def sync(cfg: Config, experiments: list[str] | None = None, tracking_uri: str | 
     from mlflow import MlflowClient  # imported here: slow, and only this command needs it
     from mlflow.entities import Metric, Param, RunTag
 
-    tracking_uri = tracking_uri or DEFAULT_TRACKING_URI
+    # The repo's mlflow.db, wherever the command runs from.
+    tracking_uri = tracking_uri or f"sqlite:///{(cfg.root / 'mlflow.db').as_posix()}"
     backup = backup_db(cfg, tracking_uri)
     client = MlflowClient(tracking_uri=tracking_uri)
     names = experiments or sorted(
@@ -118,6 +118,9 @@ def sync(cfg: Config, experiments: list[str] | None = None, tracking_uri: str | 
             meta, _ = records.load_poem(path)
             params, tags, metrics = run_fields(meta, notes.get(meta["poem_id"]))
             run = existing.get(meta["poem_id"])
+            if run is not None and run.info.status != "FINISHED":
+                client.delete_run(run.info.run_id)  # an earlier sync stopped halfway
+                run = None
             if run is not None:
                 changed = {k: v for k, v in tags.items() if run.data.tags.get(k) != v}
                 for key, value in changed.items():
@@ -125,7 +128,13 @@ def sync(cfg: Config, experiments: list[str] | None = None, tracking_uri: str | 
                 counts["updated" if changed else "unchanged"] += 1
                 continue
             start = _ms(meta.get("created"))
-            run = client.create_run(exp_id, start_time=start, run_name=meta["poem_id"])
+            # Tag the run with its poem_id at creation, so an interrupted sync can find it.
+            run = client.create_run(
+                exp_id,
+                start_time=start,
+                run_name=meta["poem_id"],
+                tags={"poem_id": meta["poem_id"]},
+            )
             now = int(datetime.now(UTC).timestamp() * 1000)
             client.log_batch(
                 run.info.run_id,

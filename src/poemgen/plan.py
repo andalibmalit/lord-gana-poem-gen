@@ -141,6 +141,7 @@ def build_plan(cfg: Config, exp: Experiment, only_models: list[str] | None = Non
                         {
                             "model": key,
                             "weights_sha256": model.weights_sha256,
+                            "ollama_digest": model.ollama_digest,
                             "system_sha256": system.sha256,
                             "user_sha256": user.sha256,
                             "options": sent,

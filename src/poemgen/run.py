@@ -211,14 +211,16 @@ class Runner:
                     break
                 consecutive = 0 if self.generate(spec, info) else consecutive + 1
         else:
-            with ThreadPoolExecutor(self.cfg.machine.parallel) as pool:
+            pool = ThreadPoolExecutor(self.cfg.machine.parallel)
+            try:
                 futures = [pool.submit(self.generate, spec, info) for spec in rest]
                 for future in as_completed(futures):
                     consecutive = 0 if future.result() else consecutive + 1
                     if consecutive >= MAX_CONSECUTIVE_FAILURES:
-                        for f in futures:
-                            f.cancel()
                         break
+            finally:
+                # Drop queued poems at once (on Ctrl+C too); requests already sent finish.
+                pool.shutdown(wait=False, cancel_futures=True)
         if consecutive >= MAX_CONSECUTIVE_FAILURES:
             self.log(f"{model.key}: stopped after {consecutive} failures in a row.")
 
@@ -230,7 +232,6 @@ class Runner:
         started = time.monotonic()
         try:
             response = self.client.chat(body)
-            memory = self.client.loaded(spec.model.tag) if capture_memory else None
         except OllamaError as e:
             records.log_failure(
                 cfg.poems_dir,
@@ -241,6 +242,13 @@ class Runner:
                 self.summary.failed += 1
             self.log(f"  {spec.poem_id}  failed: {e}")
             return False
+
+        memory = None
+        if capture_memory:
+            try:
+                memory = self.client.loaded(spec.model.tag)
+            except OllamaError as e:  # never lose a finished poem over a memory reading
+                self.log(f"  warning: couldn't read memory use: {e}")
 
         message = response.get("message", {})
         poem = message.get("content", "")

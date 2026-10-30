@@ -134,3 +134,30 @@ def test_mlflow_sync_is_idempotent_and_updates_notes(poems, tmp_path):
     assert run.data.params["opt.temperature"] == "0.7" and run.data.params["model"] == "small"
     assert run.data.metrics["tokens_per_second"] == 20.0
     assert client.search_runs([other]) == []
+
+
+def test_mlflow_sync_clears_deleted_notes_and_replaces_half_synced_runs(poems, tmp_path):
+    from mlflow import MlflowClient
+
+    from poemgen.mlflow_sync import sync
+    from poemgen.reading import save_note
+
+    uri = f"sqlite:///{tmp_path / 'test.db'}"
+    save_note(poems, "exp", "aaaaaaaaaaaa", "luminous", ["presence"])
+    sync(poems, tracking_uri=uri)
+    save_note(poems, "exp", "aaaaaaaaaaaa", "", [])
+    assert sync(poems, tracking_uri=uri)["updated"] == 1
+
+    client = MlflowClient(tracking_uri=uri)
+    exp_id = client.get_experiment_by_name("poems/exp").experiment_id
+
+    def run_for(pid):
+        return [r for r in client.search_runs([exp_id]) if r.data.tags.get("poem_id") == pid]
+
+    assert run_for("aaaaaaaaaaaa")[0].data.tags["note"] == ""
+    # Simulate a sync that stopped after creating a run: it gets replaced, not duplicated.
+    client.delete_run(run_for("bbbbbbbbbbbb")[0].info.run_id)
+    client.create_run(exp_id, run_name="bbbbbbbbbbbb", tags={"poem_id": "bbbbbbbbbbbb"})
+    assert sync(poems, tracking_uri=uri)["created"] == 1
+    runs = run_for("bbbbbbbbbbbb")
+    assert len(runs) == 1 and runs[0].info.status == "FINISHED"

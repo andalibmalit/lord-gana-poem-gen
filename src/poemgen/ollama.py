@@ -39,7 +39,10 @@ class Ollama:
             raise OllamaError(f"{method} {path}: {e}") from e
         if r.is_error:
             raise OllamaError(f"{method} {path}: HTTP {r.status_code}: {r.text.strip()[:500]}")
-        return r.json()
+        try:
+            return r.json()
+        except ValueError as e:
+            raise OllamaError(f"{method} {path}: response isn't JSON: {r.text[:200]}") from e
 
     def version(self) -> str:
         return self._request("GET", "/api/version")["version"]

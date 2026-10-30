@@ -147,3 +147,20 @@ def test_real_config_loads():
     cfg = load_config()
     plan = build_plan(cfg, load_experiment(cfg, "smoke"))
     assert len(plan.specs) == 2
+
+
+def test_tags_without_a_ref_compare_as_latest(repo):
+    path = repo / "config" / "models.toml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace('tag = "plain:q4"', 'tag = "hf.co/org/repo-GGUF"'),
+        encoding="utf-8",
+    )
+    cfg = load_config(repo)
+    assert cfg.models["plain"].tag == "hf.co/org/repo-GGUF:latest"
+    assert cfg.models["small"].tag == "small:q8"
+
+
+def test_experiment_name_beats_a_directory_of_the_same_name(cfg, monkeypatch, tmp_path):
+    (tmp_path / "elsewhere" / "exp").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path / "elsewhere")
+    assert load_experiment(cfg, "exp").name == "exp"

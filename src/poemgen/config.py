@@ -136,8 +136,17 @@ def read_toml(path: Path) -> dict:
             return tomllib.load(f)
     except FileNotFoundError:
         raise ConfigError(f"Missing config file: {path}") from None
+    except OSError as e:
+        raise ConfigError(f"Can't read {path}: {e}") from None
     except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"{path}: {e}") from None
+
+
+def normalize_tag(tag: str) -> str:
+    """Ollama lists a tag without a `:ref` as `:latest`; compare tags in that form."""
+    if tag and ":" not in tag.rsplit("/", 1)[-1]:
+        return f"{tag}:latest"
+    return tag
 
 
 def check_key(key: str, what: str) -> str:
@@ -193,7 +202,7 @@ def _model(key: str, raw: dict) -> Model:
         return Model(
             key=key,
             name=raw.get("name", key),
-            tag=raw["tag"],
+            tag=normalize_tag(raw["tag"]),
             upstream=raw.get("upstream", ""),
             quant=raw.get("quant", ""),
             confirmed=bool(raw.get("confirmed", False)),
@@ -262,7 +271,7 @@ def load_config(root: Path | None = None, machine_path: Path | str | None = None
 
 def experiment_path(cfg: Config, name_or_path: str) -> Path:
     path = Path(name_or_path)
-    if path.suffix == ".toml" or path.exists():
+    if path.suffix == ".toml" or path.is_file():
         return path
     return cfg.root / "experiments" / f"{name_or_path}.toml"
 
