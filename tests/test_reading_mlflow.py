@@ -161,3 +161,33 @@ def test_mlflow_sync_clears_deleted_notes_and_replaces_half_synced_runs(poems, t
     assert sync(poems, tracking_uri=uri)["created"] == 1
     runs = run_for("bbbbbbbbbbbb")
     assert len(runs) == 1 and runs[0].info.status == "FINISHED"
+
+
+def test_text_counts():
+    exact = records.text_counts("One two three", "", 12)
+    assert exact == {
+        "poem_words": 3,
+        "poem_chars": 13,
+        "thinking_words": 0,
+        "thinking_chars": 0,
+        "thinking_tokens": 0,
+        "poem_tokens": 12,
+        "token_split": "exact (no thinking)",
+    }
+    split = records.text_counts("a" * 30, "b" * 10, 100)
+    assert (split["poem_tokens"], split["thinking_tokens"]) == (75, 25)
+    assert "poem_tokens" not in records.text_counts("x", "", None)
+
+
+def test_notes_record_mode_and_keep_the_blind_version(poems):
+    from poemgen.reading import save_note
+
+    save_note(poems, "exp", "aaaaaaaaaaaa", "first read", ["presence"], "blind", 7)
+    save_note(poems, "exp", "aaaaaaaaaaaa", "after reveal", ["presence", "gemma"], "reveal", 8)
+    entry = load_notes(poems, "exp")["aaaaaaaaaaaa"]
+    assert entry["mode"] == "reveal" and entry["note"] == "after reveal"
+    assert entry["blind"]["note"] == "first read" and entry["blind"]["shuffle_seed"] == 7
+    save_note(poems, "exp", "aaaaaaaaaaaa", "again", [], "reveal", 8)
+    assert load_notes(poems, "exp")["aaaaaaaaaaaa"]["blind"]["note"] == "first read"
+    save_note(poems, "exp", "aaaaaaaaaaaa", "", [], "reveal", 8)  # cleared, blind kept
+    assert load_notes(poems, "exp")["aaaaaaaaaaaa"] == {"blind": entry["blind"]}

@@ -101,6 +101,11 @@ def test_writes_complete_records(cfg):
     assert meta["model"]["weights_sha256"] == f"sha256:{WEIGHTS}"
     assert meta["model"]["digest"] == "d1"
     assert meta["ollama_version"] == "0.40.0"
+    assert meta["machine"]["name"] == "test" and meta["machine"]["os"]
+    assert meta["counts"]["poem_words"] == 5 and meta["counts"]["token_split"].startswith(
+        "estimated"
+    )
+    assert meta["counts"]["poem_tokens"] + meta["counts"]["thinking_tokens"] == 40
     assert meta["flags"]["has_thinking"] and not meta["flags"]["truncated"]
     assert meta["flags"]["system_prompt_rendered"] is True
     rendered = records.read_text(cfg.poems_dir / meta["rendered_prompt"]["snapshot"])

@@ -45,6 +45,27 @@ def write_text_atomic(path: Path, text: str) -> None:
         os.replace(tmp, path)
 
 
+def text_counts(poem: str, thinking: str, output_tokens: int | None) -> dict:
+    """Words, characters and an output-token split for the poem and its thinking.
+
+    Ollama reports one output count for thinking and poem together. With no thinking,
+    the poem's share is exact; otherwise it's estimated by each part's share of characters.
+    """
+    counts = {
+        "poem_words": len(poem.split()),
+        "poem_chars": len(poem),
+        "thinking_words": len(thinking.split()),
+        "thinking_chars": len(thinking),
+    }
+    if output_tokens is not None:
+        total = len(poem) + len(thinking)
+        thinking_share = len(thinking) / total if total else 0.0
+        counts["thinking_tokens"] = round(output_tokens * thinking_share)
+        counts["poem_tokens"] = output_tokens - counts["thinking_tokens"]
+        counts["token_split"] = "estimated by characters" if thinking else "exact (no thinking)"
+    return counts
+
+
 def now_utc() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 

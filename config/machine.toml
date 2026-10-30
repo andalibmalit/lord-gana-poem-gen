@@ -18,8 +18,16 @@ request_timeout_minutes = 60
 keep_alive = "10m"        # how long Ollama keeps a model loaded between requests
 minutes_per_poem = 3      # time estimate for models with no poems yet
 
+# Ollama server settings that change outputs but can't be sent per request or read
+# through the API. Write here what the server was started with ("" = not set, so the
+# server default applies). Each poem records them as declared values.
+[ollama_env]
+OLLAMA_NUM_PARALLEL = ""      # parallel slots (default 1); keep `parallel` above equal to it
+OLLAMA_KV_CACHE_TYPE = ""     # context-cache precision (default f16; q8_0 / q4_0 change outputs)
+OLLAMA_FLASH_ATTENTION = ""   # attention kernel (changes the arithmetic slightly)
+
 # Largest num_ctx this machine can hold for a model (weights + context within the budget).
-# Estimates from docs/prd.md; check them on the first load.
+# Estimates from docs/prd.md and the build research; check them on the first load.
 [num_ctx_caps]
 "hermes4.3-36b" = 24576
 "seed-oss-36b" = 24576

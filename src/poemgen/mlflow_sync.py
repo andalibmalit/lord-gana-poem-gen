@@ -39,8 +39,8 @@ def _ms(iso: str | None) -> int | None:
     return int(datetime.fromisoformat(iso).timestamp() * 1000) if iso else None
 
 
-def run_fields(meta: dict, note: dict | None) -> tuple[dict, dict, dict]:
-    """(params, tags, metrics) for one poem."""
+def run_fields(meta: dict, note: dict | None, counts: dict) -> tuple[dict, dict, dict]:
+    """(params, tags, metrics) for one poem. `counts` comes from records.text_counts."""
     request, response = meta.get("request", {}), meta.get("response", {})
     model = meta.get("model", {})
     params = {
@@ -62,6 +62,9 @@ def run_fields(meta: dict, note: dict | None) -> tuple[dict, dict, dict]:
         "weights_sha256": model.get("weights_sha256"),
         "ollama_version": meta.get("ollama_version"),
         "git_commit": (meta.get("tool") or {}).get("git_commit"),
+        "runner": model.get("runner"),
+        "machine": (meta.get("machine") or {}).get("name"),
+        "token_split": counts.get("token_split"),
         "done_reason": response.get("done_reason"),
     }
     tags |= {f"flag.{k}": v for k, v in (meta.get("flags") or {}).items()}
@@ -70,6 +73,10 @@ def run_fields(meta: dict, note: dict | None) -> tuple[dict, dict, dict]:
     # Always set, so clearing a note on the reading page clears it here too.
     tags["note"] = (note or {}).get("note", "")[:MAX_TAG]
     tags["note_tags"] = ", ".join((note or {}).get("tags", []))
+    tags["note_mode"] = (note or {}).get("mode", "")
+    blind = (note or {}).get("blind") or {}
+    tags["blind_note"] = blind.get("note", "")[:MAX_TAG]
+    tags["blind_note_tags"] = ", ".join(blind.get("tags", []))
     memory = meta.get("memory") or {}
     metrics = {
         "prompt_tokens": response.get("prompt_eval_count"),
@@ -79,6 +86,7 @@ def run_fields(meta: dict, note: dict | None) -> tuple[dict, dict, dict]:
         "memory_gb": memory.get("size", 0) / 1e9 or None,
         "memory_on_gpu_gb": memory.get("size_vram", 0) / 1e9 or None,
     }
+    metrics |= {k: v for k, v in counts.items() if k != "token_split"}
     if response.get("eval_count") and response.get("eval_duration"):
         metrics["tokens_per_second"] = response["eval_count"] / (response["eval_duration"] / 1e9)
     clean = lambda d: {k: str(v) for k, v in d.items() if v is not None}  # noqa: E731
@@ -115,8 +123,13 @@ def sync(cfg: Config, experiments: list[str] | None = None, tracking_uri: str | 
         }
         notes = load_notes(cfg, name)
         for path in records.poem_files(cfg.poems_dir, name):
-            meta, _ = records.load_poem(path)
-            params, tags, metrics = run_fields(meta, notes.get(meta["poem_id"]))
+            meta, poem = records.load_poem(path)
+            thinking_file = records.thinking_path(path)
+            thinking = records.read_text(thinking_file) if thinking_file.exists() else ""
+            text = records.text_counts(
+                poem, thinking, (meta.get("response") or {}).get("eval_count")
+            )
+            params, tags, metrics = run_fields(meta, notes.get(meta["poem_id"]), text)
             run = existing.get(meta["poem_id"])
             if run is not None and run.info.status != "FINISHED":
                 client.delete_run(run.info.run_id)  # an earlier sync stopped halfway
@@ -143,9 +156,8 @@ def sync(cfg: Config, experiments: list[str] | None = None, tracking_uri: str | 
                 tags=[RunTag(k, v) for k, v in tags.items()],
             )
             client.log_artifact(run.info.run_id, str(path))
-            thinking = records.thinking_path(path)
-            if thinking.exists():
-                client.log_artifact(run.info.run_id, str(thinking))
+            if thinking_file.exists():
+                client.log_artifact(run.info.run_id, str(thinking_file))
             end = (
                 start + int((meta.get("response") or {}).get("total_duration", 0) / 1e6)
                 if start

@@ -32,12 +32,40 @@ def load_notes(cfg: Config, experiment: str) -> dict[str, dict]:
     return json.loads(records.read_text(path)) if path.is_file() else {}
 
 
-def save_note(cfg: Config, experiment: str, poem_id: str, note: str, tags: list[str]) -> dict:
+def save_note(
+    cfg: Config,
+    experiment: str,
+    poem_id: str,
+    note: str,
+    tags: list[str],
+    mode: str = "blind",
+    shuffle_seed: int | None = None,
+) -> dict:
+    """Save a note, recording whether it was written blind or after revealing.
+
+    When a blind note is first edited in reveal mode, the blind version is kept under
+    "blind", so the blind judgment is never lost.
+    """
     tags = sorted({t.strip() for t in tags if t.strip()})
     with _notes_lock:
         notes = load_notes(cfg, experiment)
+        previous = notes.get(poem_id, {})
+        blind = previous.get("blind")
+        if blind is None and mode == "reveal" and previous.get("mode") == "blind":
+            blind = {k: previous[k] for k in ("note", "tags", "updated", "shuffle_seed")}
+        entry: dict = {}
         if note.strip() or tags:
-            notes[poem_id] = {"note": note, "tags": tags, "updated": records.now_utc()}
+            entry = {
+                "note": note,
+                "tags": tags,
+                "updated": records.now_utc(),
+                "mode": mode,
+                "shuffle_seed": shuffle_seed,
+            }
+        if blind:
+            entry["blind"] = blind
+        if entry:
+            notes[poem_id] = entry
         else:
             notes.pop(poem_id, None)
         text = json.dumps(dict(sorted(notes.items())), ensure_ascii=False, indent=2) + "\n"
@@ -67,7 +95,11 @@ def poem_entries(cfg: Config, experiment: str, reveal: bool) -> list[dict]:
                 },
                 "flags": {k: v for k, v in (meta.get("flags") or {}).items() if v},
                 "not_applied": meta.get("not_applied") or {},
-                "tokens": meta.get("response", {}).get("eval_count"),
+                "counts": records.text_counts(
+                    poem,
+                    records.read_text(thinking) if thinking.exists() else "",
+                    meta.get("response", {}).get("eval_count"),
+                ),
                 "thinking": records.read_text(thinking) if thinking.exists() else None,
             }
         entries.append(entry)
@@ -129,7 +161,10 @@ def make_server(
                 poem_id, note, tags = body["id"], str(body.get("note", "")), body.get("tags", [])
                 if poem_id not in known or len(note) > MAX_NOTE_CHARS or not isinstance(tags, list):
                     raise ValueError("unknown poem or bad note")
-                saved = save_note(cfg, experiment, poem_id, note, [str(t) for t in tags])
+                mode = "reveal" if reveal else "blind"
+                saved = save_note(
+                    cfg, experiment, poem_id, note, [str(t) for t in tags], mode, shuffle_seed
+                )
             except (ValueError, KeyError, json.JSONDecodeError) as e:
                 return self._send(400, json.dumps({"error": str(e)}), "application/json")
             self._send(200, json.dumps(saved, ensure_ascii=False), "application/json")

@@ -78,6 +78,7 @@ class Machine:
     keep_alive: str
     minutes_per_poem: float
     num_ctx_caps: dict[str, int]
+    ollama_env: dict[str, str]  # declared server settings
 
 
 @dataclass(frozen=True)
@@ -245,6 +246,7 @@ def _machine(path: Path) -> Machine:
             keep_alive=str(raw.get("keep_alive", "10m")),
             minutes_per_poem=float(raw.get("minutes_per_poem", 3)),
             num_ctx_caps=dict(caps),
+            ollama_env={k: str(v) for k, v in raw.get("ollama_env", {}).items()},
         )
     except KeyError as e:
         raise ConfigError(f"{path}: missing {e.args[0]!r}.") from None

@@ -6,6 +6,7 @@ is written as soon as it's done, so an interrupted run resumes where it stopped.
 
 from __future__ import annotations
 
+import platform
 import re
 import subprocess
 import threading
@@ -177,6 +178,13 @@ class Runner:
         self._total = len(pending)
         self.version = self.client.version()
         self.tool = {"name": "poemgen", "version": __version__, **git_info(self.cfg.root)}
+        self.machine = {
+            "name": self.cfg.machine.name,
+            "os": platform.system(),
+            "os_release": platform.release(),
+            "arch": platform.machine(),
+            "ollama_env_declared": self.cfg.machine.ollama_env,
+        }
         local = self.client.tags()
         by_model: dict[str, list[PoemSpec]] = {}
         for spec in pending:
@@ -288,6 +296,8 @@ class Runner:
                 "parameter_size": info.details.get("parameter_size"),
                 "family": info.details.get("family"),
                 "context_length": info.context_length,
+                "runner": info.details.get("runner"),
+                "parent_model": info.details.get("parent_model") or None,
                 "modelfile": info.modelfile_snapshot,
             },
             "settings_set": spec.settings_set,
@@ -299,8 +309,10 @@ class Runner:
             "rendered_prompt": rendered_ref,
             "response": {k: v for k, v in response.items() if k not in ("message", "logprobs")},
             "flags": poem_flags,
+            "counts": records.text_counts(poem, thinking, response.get("eval_count")),
             "thinking_file": records.thinking_path(path).name if thinking else None,
             "ollama_version": self.version,
+            "machine": self.machine,
             "tool": self.tool,
         }
         if memory:
