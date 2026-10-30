@@ -61,6 +61,17 @@ class Ollama:
     def chat(self, body: dict) -> dict:
         return self._request("POST", "/api/chat", json=body)
 
+    def render(self, body: dict) -> str | None:
+        """The exact prompt text the model would receive, without generating anything.
+
+        Uses Ollama's undocumented `_debug_render_only` flag, so None means "unknown".
+        """
+        try:
+            response = self.chat({**body, "_debug_render_only": True})
+        except OllamaError:
+            return None
+        return response.get("_debug_info", {}).get("rendered_template")
+
     def unload(self, model: str) -> None:
         self._request("POST", "/api/chat", json={"model": model, "messages": [], "keep_alive": 0})
 

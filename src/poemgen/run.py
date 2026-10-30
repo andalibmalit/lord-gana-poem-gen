@@ -226,6 +226,7 @@ class Runner:
         """Generate one poem and write its record. Returns False if the request failed."""
         cfg = self.cfg
         body = request_body(spec, cfg)
+        rendered = self.client.render(body)  # the exact text the model sees, or None
         started = time.monotonic()
         try:
             response = self.client.chat(body)
@@ -245,6 +246,15 @@ class Runner:
         poem = message.get("content", "")
         thinking = message.get("thinking") or ""
         poem_flags = flags(spec, response, poem, thinking)
+        rendered_ref = None
+        if rendered is not None:
+            sha = records.sha256_text(rendered)
+            snapshot = records.snapshot(cfg.poems_dir, "prompts", f"{sha[:12]}.md", rendered)
+            rendered_ref = {"sha256": sha, "snapshot": snapshot}
+        # Chat templates can add to or drop the system prompt: check it reached the model.
+        poem_flags["system_prompt_rendered"] = (
+            None if rendered is None else spec.system.text.strip() in rendered
+        )
         path = records.poem_path(cfg.poems_dir, spec.experiment, spec.poem_id)
         recorded_body = {
             **body,
@@ -278,6 +288,7 @@ class Runner:
             "origins": spec.origins,
             "not_applied": spec.not_applied,
             "request": recorded_body,
+            "rendered_prompt": rendered_ref,
             "response": {k: v for k, v in response.items() if k not in ("message", "logprobs")},
             "flags": poem_flags,
             "thinking_file": records.thinking_path(path).name if thinking else None,
@@ -297,7 +308,10 @@ class Runner:
             self.summary.written += 1
             self._done += 1
             done = self._done
-        notes = [name for name, on in poem_flags.items() if on and name != "has_thinking"]
+        problems = ("truncated", "context_full", "empty_poem", "thinking_in_content")
+        notes = [name for name in problems if poem_flags[name]]
+        if poem_flags["system_prompt_rendered"] is False:
+            notes.append("system prompt not in rendered prompt")
         self.log(
             f"  [{done}/{self._total}] {spec.poem_id}  {response.get('eval_count', '?')} tokens  "
             f"{(time.monotonic() - started) / 60:.1f} min"

@@ -60,6 +60,10 @@ class FakeOllama:
             "eval_count": 40,
         }
 
+    def render(self, body):
+        system, user = (m["content"] for m in body["messages"])
+        return f"<sys>{system}</sys><user>{user}</user>"
+
     def unload(self, model):
         self.unloaded.append(model)
 
@@ -98,6 +102,9 @@ def test_writes_complete_records(cfg):
     assert meta["model"]["digest"] == "d1"
     assert meta["ollama_version"] == "0.40.0"
     assert meta["flags"]["has_thinking"] and not meta["flags"]["truncated"]
+    assert meta["flags"]["system_prompt_rendered"] is True
+    rendered = records.read_text(cfg.poems_dir / meta["rendered_prompt"]["snapshot"])
+    assert rendered.startswith("<sys>") and hot.system.text in rendered
     assert records.read_text(records.thinking_path(path)).startswith("Let me think")
     # Snapshots: the exact prompt text, and the Modelfile without the local path.
     snapshot = cfg.poems_dir / meta["request"]["messages"][0]["snapshot"]
