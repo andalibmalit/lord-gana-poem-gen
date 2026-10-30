@@ -24,7 +24,8 @@ uv run poemgen models pull <keys>                # pull exactly the configured b
 uv run poemgen read <experiment> [--reveal]      # blind-reading page + notes server (binds a port)
 uv run poemgen mlflow sync [experiments]         # mirror poems/ and notes/ into mlflow.db
 uv run pytest                                    # tests (no network, no Ollama)
-uv run ruff check && uv run ruff format --check
+uv run pytest -m ollama                          # opt-in: render checks against the local Ollama
+uv run ruff check && uv run ruff format --check && uv run ty check
 ```
 
 Sandbox notes for Claude: `uv run poemgen models *` is excluded from the sandbox, because Python HTTPS needs the CA bundle that a global `Read(**/*.pem)` rule blocks. Run it as its own command, not chained, or the exclusion doesn't match. Ollama on localhost works inside the sandbox. Delete files with Python's `shutil`, because `rm -rf` is denied globally.
@@ -57,4 +58,5 @@ Sandbox notes for Claude: `uv run poemgen models *` is excluded from the sandbox
 - Cross-platform: `pathlib`; every `open()` passes `encoding="utf-8"` (ruff rule PLW1514); no macOS-only code; machine-specific values only in `config/machine.toml`.
 - A model runs only if its local build matches `models.toml` exactly: digest, weights, stop tokens, context length, and thinking capability. To change a build, edit `models.toml`, run `models check`, pull, then paste the printed digests in. The tool never writes config.
 - Chat templates differ per model (thinking switches, system-prompt edits). Each poem records the rendered prompt; check it when adding a model.
+- Every `src/` function has type hints (ruff ANN rules); `ty` checks them. CI (`.github/workflows/tests.yml`) runs everything on Linux, Windows and macOS.
 - Keep it simple: stdlib plus httpx, pyyaml and mlflow.

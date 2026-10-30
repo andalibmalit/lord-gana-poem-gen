@@ -57,7 +57,13 @@ Each experiment appears as `poems/<name>`, with one run per poem, its settings a
 
 ## Development
 
-`uv run pytest` (no network or Ollama needed) and `uv run ruff check`.
+```
+uv run pytest            # no network or Ollama needed
+uv run pytest -m ollama  # opt-in: check every pulled model's prompt rendering (no generation)
+uv run ruff check && uv run ruff format --check && uv run ty check
+```
+
+The same checks run on Linux, Windows and macOS in GitHub Actions once the repo is on GitHub.
 
 ## Docs
 
