@@ -2,6 +2,8 @@
 
 What the project tracks, where each value comes from, which defaults are neutral, and why each setting matters. Written 2026-10-30, from commit `5ca9aaa`, transformers 5.17.0, the Oct 21–27 design sessions, and the cached `generation_config.json` files. Section 6 maps everything to Ollama.
 
+**Sections 1–5 describe the old transformers notebook**, which was removed when the project moved to Ollama (it's in commit `3150c18`). Section 6 is what `poemgen` uses: `config/defaults.toml` holds the neutral values, and every poem record lists the options it sent with the origin of each value.
+
 ## 1. How transformers picks a value
 
 Inside `generate()`, each setting takes the first value it finds, in this order:
@@ -136,20 +138,39 @@ Not available in Ollama: `top_h`, `epsilon_cutoff`, `eta_cutoff`, `no_repeat_ngr
 | `draft_num_predict` | 4 when a draft model is used | Speculative decoding. 0 turns it off. |
 | `num_keep`, `num_batch`, `num_gpu`, `num_thread`, `keep_alive` | various | Speed and memory only, not the text. |
 
-### What to log per request
+### What poemgen logs per request
 
-- The full request: model tag and digest, `options`, `think`, messages.
-- `ollama show <model> --modelfile`, which includes the template and baked-in parameters.
-- The Ollama version.
-- From the response: `done_reason` (`length` means it hit the limit), `eval_count`, `prompt_eval_count`, `total_duration`, `eval_duration`, and `message.thinking` stored separately from the poem.
+Each poem file's front matter holds all of the following (see `src/poemgen/run.py`):
 
-### Unverified
+- The exact request body, with the prompt text replaced by sha256 references to snapshots in `poems/_prompts/`.
+- The **rendered prompt**: the exact text the model saw after its chat template, from Ollama's `_debug_render_only` flag.
+- The model tag, `/api/tags` digest, weights digest and a Modelfile snapshot in `poems/_models/`.
+- The Ollama version, and the response fields: `done_reason` (`length` means it hit the limit), token counts and durations.
+- `message.thinking`, stored in `<poem_id>.thinking.md` next to the poem.
 
-Ollama's API accepts all the options above. Not checked: whether every engine honors every option for every model. Before relying on a setting, run a quick test: same seed, change only that option, and check that the output changes.
+### Verified while building poemgen (Ollama 0.40.0, 30 Oct 2026)
+
+- **Engine.** GGUF models run in llama.cpp's `llama-server`. Ollama passes `temperature`, `top_k`, `top_p`, `min_p`, `typical_p`, `repeat_penalty`, `repeat_last_n`, `presence_penalty`, `frequency_penalty`, `seed` and `stop` to its sampler. `num_ctx` is a load-time setting: a different value reloads the model.
+- **Unknown option names are warned about and skipped,** not rejected. poemgen rejects them when it loads the config.
+- **Truncation.** By default Ollama silently drops older messages to fit `num_ctx`. poemgen sends `truncate: false` and `shift: false`, so an over-long prompt fails instead.
+- **Default `num_ctx`** when `OLLAMA_CONTEXT_LENGTH` is unset: 4096 below 23 GiB of GPU memory, 32768 from 23 GiB, 262144 from 47 GiB.
+- **`think` depends on the chat template**, model by model:
+  - Gemma 4's built-in renderer adds `<|think|>` to the system turn.
+  - Qwen3 appends `/think` or `/no_think` to the user turn.
+  - Hemmingway accepts `false`, `"low"`, `"medium"` and `true` (its "xhigh"), and prepends a "Reasoning effort is set to …" paragraph to the system prompt. `"high"` and `"max"` crash its template.
+  - Hermes 4 14B's template always opens `<think>`, so `think: false` doesn't stop it reasoning.
+  - Nemotron's GGUF template always closes the think block, so it never reasons.
+  - This is why poemgen records the rendered prompt.
+- **`/api/show`** in 0.40 lists a `thinking` capability but not the accepted values. The Modelfile's `FROM` line names the weights blob by its sha256, which poemgen checks against the pinned `weights_sha256`.
+
+### Still unverified
+
+Whether every option changes the output for every model, and whether a same-seed rerun gives the same poem. Before relying on a setting, run a quick test: same seed, change only that option, and check that the output changes.
 
 ## Sources
 
 - transformers 5.17.0: `generation/configuration_utils.py` (`_get_default_generation_params`), `generation/utils.py` (merge order).
 - Cached `generation_config.json` for each model in `~/.cache/huggingface/hub`.
 - MLflow run `0b589312…` (Gemma E4B, 2026-10-23): the logged params.
-- Ollama: `api/types.go` (`Options`, `DefaultOptions`, `ThinkValue`), `envconfig/config.go` (`OLLAMA_CONTEXT_LENGTH`), docs.ollama.com/modelfile. Checked 2026-10-30.
+- Ollama: `api/types.go` (`Options`, `DefaultOptions`, `ThinkValue`, `ChatRequest`), `envconfig/config.go` (`OLLAMA_CONTEXT_LENGTH`), `server/routes.go`, `server/sched.go`, `llm/llama_server.go`, docs.ollama.com/modelfile. Checked 2026-10-30.
+- Local tests with Ollama 0.40.0: `/api/show`, `/api/tags`, `/api/ps`, rendered prompts via `_debug_render_only`, and the two smoke poems in `poems/smoke/`.
