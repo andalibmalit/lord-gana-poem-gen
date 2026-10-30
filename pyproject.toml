@@ -1,24 +1,41 @@
 [project]
 name = "lord-gana-poem-gen"
-version = "0.1.0"
-description = "Exploring LLMs' abilities to generate devotional poems to Lord Gana."
+version = "0.2.0"
+description = "Generate devotional poems to Lord Gana with local LLMs, keep every poem with its settings, and read them blind."
 readme = "README.md"
-authors = [
-  { name = "Andalib Samandari", email = "andalibmalit@gmail.com" }
-]
+authors = [{ name = "Andalib Samandari", email = "andalibmalit@gmail.com" }]
 requires-python = ">=3.13"
 dependencies = [
-    "accelerate>=1.15.0",
-    "kernels>=0.16,<0.17",
-    "marimo>=0.25.2",
-    "mlflow>=3.17.2",
-    "polars>=2.0.0",
-    "torch>=2.14.1",
-    "torchvision>=0.29.1",
-    "transformers >=4.45.2, <= 5.17.0",
+    "httpx>=0.28",
+    # Pinned: the existing mlflow.db uses this version's schema. Upgrading may migrate it.
+    "mlflow==3.17.2",
+    "pyyaml>=6.0",
 ]
+
+[project.scripts]
+poemgen = "poemgen.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "poemgen"
 
 [dependency-groups]
 dev = [
+    "pytest>=8",
     "ruff>=0.17.1",
 ]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "PLW1514"]
+# PLW1514 (open() without an explicit encoding) is a preview rule: enable just that one.
+preview = true
+explicit-preview-rules = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

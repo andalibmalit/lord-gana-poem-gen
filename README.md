@@ -1,18 +1,24 @@
-# README
-For now, this repo does the following:
-1. Store a system prompt used with a variety of LLMs to generate English-language devotional poems addressed to Lord Gana.
-2. Store the list of models being explored and their configuration settings (temperature, reasoning on/off). Models can be run locally or remotely.
-3. Perform generation sweeps using the system prompt across the models and config settings, in parallel if memory allows.
-4. Store the parameters and results of each sweep in a local MLFlow server.
-5. Export the results from MLFlow for future analysis and publication/sharing.
+# lord-gana-poem-gen
 
-Libraries used: Marimo, Hugging Face transformers, OpenRouter (for remote models, later), MLFlow for storage, polars for dataframe analysis
+Generates English-language devotional poems addressed to Lord Gana from open-weight models running locally through [Ollama](https://ollama.com). It sweeps system-prompt variants and inference settings, saves every poem with everything needed to trace it, and lets you read the poems blind and take notes.
 
-**Current entry point:** notebooks/initial_exploration.py
+User prompt: "Please write an original, English-language devotional poem addressed to Lord Gana."
 
-I should probably also compare translations/OCR done by other LLMs besides Claude, and do some NLP analysis for faithfulness. E.g. low difference between the two.
+## Setup
 
-Prompt for generation: "Please write an original, English-language devotional poem addressed to Lord Gana."
+1. Install [uv](https://docs.astral.sh/uv/) and [Ollama](https://ollama.com), then `uv sync`.
+2. Edit `config/machine.toml` for your machine (Ollama host, memory, context caps).
 
-## On the system prompt
-In addition to the various translation options, experiment with "I" vs "You" in the first part
+## Everyday loop
+
+1. Edit an experiment in `experiments/` or a prompt in `prompts/`.
+2. `uv run poemgen plan <experiment>` to see the planned poems and a time estimate.
+
+More commands are documented here as they're built (see `docs/prd.md`).
+
+## Docs
+
+- `docs/prd.md`: requirements.
+- `docs/inference-settings.md`: every inference setting, its neutral value and its Ollama equivalent.
+- `docs/recommended-sampling-settings.md`: each model's recommended settings, with sources.
+- `docs/scratchpad.md`: loose ideas.
