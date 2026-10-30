@@ -1,0 +1,16 @@
+# Neutral ("off") value for every Ollama option. All of them are sent on every request,
+# so Ollama's own built-in defaults (temperature 0.8, top_k 40, top_p 0.9) never apply.
+# A model's recommended settings and an experiment's changes replace these per poem.
+# See docs/inference-settings.md, section 6.
+
+temperature = 1.0        # 1.0 leaves the model's probabilities unchanged
+top_k = 0                # 0 = off
+top_p = 1.0              # 1.0 = off
+min_p = 0.0              # 0 = off
+typical_p = 1.0          # 1.0 = off (deprecated in Ollama, still accepted per request)
+repeat_penalty = 1.0     # 1.0 = off; refrains and mantra lines are deliberate repetition
+repeat_last_n = 64       # window for repeat_penalty; irrelevant while that is off
+presence_penalty = 0.0   # 0 = off
+frequency_penalty = 0.0  # 0 = off
+num_ctx = 40960          # context window: must hold the 5-8k-token system prompt + output
+num_predict = 32768      # output cap (thinking + poem): a runaway guard, not a target

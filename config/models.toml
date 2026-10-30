@@ -1,0 +1,291 @@
+# The model set. This file is the source of truth for which build of each model runs:
+# `poemgen models pull` pulls exactly `tag`, and `poemgen run` refuses a model whose
+# local digest differs from `ollama_digest`, or whose build isn't `confirmed`.
+#
+# Fields
+#   tag               Ollama tag (library name or hf.co/<user>/<repo>:<quant>)
+#   upstream          the Hugging Face model the GGUF was converted from
+#   weights_sha256    digest of the GGUF weights layer in the registry manifest (`models check`)
+#   ollama_digest     /api/tags digest after the pull (`models pull` prints it)
+#   ctx_max           longest context the model was trained for; num_ctx is capped to it
+#   think_values      values Ollama accepts for `think`; [] = no thinking switch
+#   think_default     the value used when an experiment asks for the model's default
+#   stop              stop sequences from the build's params, sent with every request
+#   recommended       the maker's own settings (card or generation_config), with recommended_source;
+#                     a `thinking` sub-table applies on top when thinking is on
+#   inherited         settings taken from the base model or a config file when the maker states
+#                     none, with inherited_source; the maker's own values win
+#   unsupported       recommended settings Ollama doesn't have; recorded on each poem as not applied
+#   build_notes       why this build: quant level, imatrix or not, lineage, template and stop checks
+#
+# Recommended values come from docs/recommended-sampling-settings.md (checked 30 Oct 2026).
+# Entries with confirmed = false still need the build research (plan step 4).
+
+# --- Headroom: fits easily in the 26.8 GB budget at num_ctx 40960 ---------------------------
+
+[gemma4-e4b]
+name = "Gemma 4 E4B"
+tag = "gemma4:e4b-it-q8_0"
+upstream = "google/gemma-4-E4B-it"
+quant = "Q8_0"
+confirmed = false
+think_values = [false, true]
+think_default = false
+description = "A small model for quick loading, code testing and experimentation."
+recommended_source = "https://huggingface.co/google/gemma-4-E4B-it (\"across all use cases\"); Ollama ships the same values"
+recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
+
+[gemma4-12b]
+name = "Gemma 4 12B"
+tag = "gemma4:12b-it-q8_0"
+upstream = "google/gemma-4-12B-it"
+quant = "Q8_0"
+confirmed = false
+think_values = [false, true]
+think_default = false
+description = "The most capable dense Gemma 4 that fits with headroom; strong on Sanskrit."
+recommended_source = "https://huggingface.co/google/gemma-4-12B-it"
+recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
+
+[styletune-12b]
+name = "Gryphe StyleTune 12B"
+tag = "hf.co/mradermacher/Gemma-4-12B-StyleTune-GGUF:Q6_K"
+upstream = "Gryphe/Gemma-4-12B-StyleTune"
+quant = "Q6_K"
+confirmed = false
+think_values = [false, true]
+think_default = false
+recommended_source = "https://huggingface.co/Gryphe/Gemma-4-12B-StyleTune (informal: \"temp 1.0, 0.10 MinP and the DRY sampler\")"
+recommended = { temperature = 1.0, min_p = 0.10 }
+inherited_source = "Gryphe/Gemma-4-12B-StyleTune generation_config.json"
+inherited = { top_p = 0.95, top_k = 64 }
+unsupported = { dry = "DRY sampler (strength not given)" }
+
+[gemma3-12b]
+name = "Gemma 3 12B"
+tag = "gemma3:12b-it-qat"
+upstream = "google/gemma-3-12b-it-qat-q4_0-gguf"
+quant = "QAT Q4_0"
+confirmed = false
+think_values = []
+recommended_source = "Ollama gemma3:12b-it-qat params (the Google repo is gated)"
+recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
+
+[qwen3-14b]
+name = "Qwen3-14B"
+tag = "hf.co/Qwen/Qwen3-14B-GGUF:Q6_K"
+upstream = "Qwen/Qwen3-14B"
+quant = "Q6_K"
+confirmed = false
+ctx_max = 40960
+think_values = [false, true]
+think_default = false
+recommended_source = "https://huggingface.co/Qwen/Qwen3-14B (no greedy decoding; optional presence 0-2 against endless repeats)"
+recommended = { temperature = 0.7, top_p = 0.8, top_k = 20, min_p = 0.0, thinking = { temperature = 0.6, top_p = 0.95 } }
+
+[hermes4-14b]
+name = "Hermes 4 14B"
+tag = "hf.co/bartowski/NousResearch_Hermes-4-14B-GGUF:Q6_K"
+upstream = "NousResearch/Hermes-4-14B"
+quant = "Q6_K"
+confirmed = false
+ctx_max = 40960
+think_values = [false, true]
+think_default = false
+description = "Nous Research aims for models that are 'open, steerable and capable of producing the full range of human expression'. Does that make it easier for a desired flavor of presence to come through, given a system prompt?"
+recommended_source = "https://huggingface.co/NousResearch/Hermes-4-14B (one set for both modes)"
+recommended = { temperature = 0.6, top_p = 0.95, top_k = 20 }
+
+[olmo3-7b-instruct]
+name = "Olmo 3 7B Instruct"
+tag = "olmo-3:7b-instruct-q8_0"
+upstream = "allenai/Olmo-3-7B-Instruct"
+quant = "Q8_0"
+confirmed = false
+think_values = []
+description = "AI2's fully open model: the whole training stack is public, which helps trace causes of output differences."
+recommended_source = "https://huggingface.co/allenai/Olmo-3-7B-Instruct"
+recommended = { temperature = 0.6, top_p = 0.95 }
+
+[olmo3-7b-think]
+name = "Olmo 3 7B Think"
+tag = "olmo-3:7b-think-q8_0"
+upstream = "allenai/Olmo-3-7B-Think"
+quant = "Q8_0"
+confirmed = false
+think_values = [true]
+think_default = true
+description = "The reasoning counterpart of Olmo 3 7B Instruct; always thinks."
+recommended_source = "https://huggingface.co/allenai/Olmo-3-7B-Think"
+recommended = { temperature = 0.6, top_p = 0.95 }
+
+["apertus-v1.5-8b"]
+name = "Apertus v1.5 8B"
+tag = "hf.co/andreasmartin/apertus-v1.5-8b-text-Q8_0-GGUF"
+upstream = "swiss-ai/Apertus-v1.5-8B"
+quant = "Q8_0"
+confirmed = false
+think_values = [false, true]
+think_default = false
+description = "Fully open and explicitly multilingual, with Sanskrit and other Indic languages in its training data. Does that correlate with better poems, given the Sanskrit-based system prompt?"
+build_notes = "Community text-only conversion, correctness unverified: compare a few poems with Public AI's hosted v1.5. Fallback: v1.0, hf.co/unsloth/Apertus-8B-Instruct-2509-GGUF:Q8_0 (card tip temp 0.8, top_p 0.9). The v1.5 card and config state no sampling settings, so neutral defaults apply."
+
+[gemma4-26b-a4b]
+name = "Gemma 4 26B-A4B"
+tag = "gemma4:26b-a4b-it-qat"
+upstream = "google/gemma-4-26B-A4B-it"
+quant = "QAT Q4_0"
+confirmed = false
+think_values = [false, true]
+think_default = false
+recommended_source = "https://huggingface.co/google/gemma-4-26B-A4B-it"
+recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
+
+# --- Close to the limit ---------------------------------------------------------------------
+
+[gemma4-31b]
+name = "Gemma 4 31B"
+tag = "gemma4:31b-it-qat"
+upstream = "google/gemma-4-31B-it"
+quant = "QAT Q4_0"
+confirmed = false
+think_values = [false, true]
+think_default = false
+recommended_source = "https://huggingface.co/google/gemma-4-31B-it"
+recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
+
+[gemma3-27b]
+name = "Gemma 3 27B"
+tag = "gemma3:27b-it-qat"
+upstream = "google/gemma-3-27b-it-qat-q4_0-gguf"
+quant = "QAT Q4_0"
+confirmed = false
+think_values = []
+inherited_source = "Gemma 3 12B (Ollama params); unverified for 27B"
+inherited = { temperature = 1.0, top_p = 0.95, top_k = 64 }
+
+[muse-glimmer-30b]
+name = "Muse Glimmer 30B"
+tag = "muse-glimmer"
+upstream = "meta-models/Muse-Glimmer-30B"
+quant = "Q4_K_M"
+confirmed = false
+think_values = [true]
+think_default = true
+build_notes = "Always thinks. Reasoning strength (low / medium / high / xhigh) is set in the system prompt, not via `think`: to map in the build research."
+recommended_source = "https://huggingface.co/meta-models/Muse-Glimmer-30B"
+recommended = { temperature = 1.0, top_p = 0.95, top_k = 64 }
+
+["qwen3.8-27b"]
+name = "Qwen3.8-27B"
+tag = "qwen3.8:27b-q4_K_M"
+upstream = "Qwen/Qwen3.8-27B"
+quant = "Q4_K_M"
+confirmed = false
+think_values = [false, true]
+think_default = true
+recommended_source = "https://huggingface.co/Qwen/Qwen3.8-27B (Ollama ships the thinking-mode set)"
+recommended = { temperature = 0.7, top_p = 0.8, top_k = 20, min_p = 0.0, presence_penalty = 1.5, repeat_penalty = 1.0, thinking = { temperature = 1.0, top_p = 0.95, presence_penalty = 0.0 } }
+
+[hemmingway-1]
+name = "Hemmingway-1"
+tag = "hf.co/bartowski/Altworld_Hemmingway-1-GGUF:Q4_K_M"
+upstream = "HemmingwayAI/Hemmingway-1"
+quant = "Q4_K_M (imatrix)"
+confirmed = false
+think_values = [false, true]
+think_default = true
+build_notes = "Already downloaded. Lineage of Altworld/Hemmingway-1 vs HemmingwayAI/Hemmingway-1 still to confirm. Template defaults to extra-high thinking."
+inherited_source = "Qwen/Qwen3.8-27B, the base model (the Hemmingway-1 card states none)"
+inherited = { temperature = 0.7, top_p = 0.8, top_k = 20, min_p = 0.0, presence_penalty = 1.5, repeat_penalty = 1.0, thinking = { temperature = 1.0, top_p = 0.95, presence_penalty = 0.0 } }
+
+["hemmingway-1.5"]
+name = "Hemmingway-1.5"
+tag = "hf.co/mradermacher/Hemmingway-1.5-i1-GGUF:Q4_K_M"
+upstream = "HemmingwayAI/Hemmingway-1.5"
+quant = "i1-Q4_K_M (imatrix)"
+confirmed = false
+think_values = [false, "low", "medium", "high"]
+think_default = false
+build_notes = "Already downloaded; ran fine locally on 30 Oct. The card offers off, low, medium or extra-high thinking: map the levels to Ollama's values in the build research."
+recommended_source = "https://huggingface.co/HemmingwayAI/Hemmingway-1.5 (\"lower temperatures make its writing easier to detect\")"
+recommended = { temperature = 1.0 }
+inherited_source = "HemmingwayAI/Hemmingway-1.5 generation_config.json"
+inherited = { top_p = 0.95, top_k = 20 }
+
+[writer-v2-27b]
+name = "Writer-V2 (Qwen3.5-27B)"
+tag = "hf.co/mradermacher/Qwen3.5-27B-Writer-V2-GGUF:Q4_K_M"
+upstream = "ConicCat/Qwen3.5-27B-Writer-V2"
+quant = "Q4_K_M"
+confirmed = false
+think_values = [false, true]
+think_default = false
+build_notes = "The card suggests an empty think prefill for non-thinking use: check that think=false does the same."
+recommended_source = "https://huggingface.co/ConicCat/Qwen3.5-27B-Writer-V2"
+recommended = { temperature = 0.7, top_p = 0.95 }
+unsupported = { dry = "DRY sampler, about 0.4-0.8" }
+
+[marvin-dpo-v2-27b]
+name = "Marvin-DPO-V2 (Qwen3.5-27B)"
+tag = ""
+upstream = "ToastyPigeon/Qwen3.5-27B-Marvin-DPO-V2"
+quant = "Q4_K_M"
+confirmed = false
+build_notes = "GGUF repo to pick. The card suggests an empty think prefill for non-thinking use."
+recommended_source = "https://huggingface.co/ToastyPigeon/Qwen3.5-27B-Marvin-DPO-V2"
+recommended = { temperature = 0.8, top_p = 0.9 }
+
+[musica-27b]
+name = "Musica (Qwen3.5-27B)"
+tag = ""
+upstream = "AuriAetherwiing/TQ3.5-27B-Musica-v1"
+quant = "Q4_K_M"
+confirmed = false
+build_notes = "GGUF repo to pick."
+recommended_source = "https://huggingface.co/AuriAetherwiing/TQ3.5-27B-Musica-v1"
+recommended = { temperature = 1.0, min_p = 0.02 }
+unsupported = { top_n_sigma = "top-nσ 2" }
+
+[gemsicle-31b]
+name = "Gemsicle-31B (Gemma 4)"
+tag = ""
+upstream = "Blazed-Forge/Gemma-4-Gemsicle-31B"
+quant = "Q4_K_M"
+confirmed = false
+build_notes = "GGUF repo to pick."
+recommended_source = "https://huggingface.co/Blazed-Forge/Gemma-4-Gemsicle-31B (values for use without Adaptive-P)"
+recommended = { temperature = 1.0, top_p = 0.90, top_k = 0, min_p = 0.03 }
+unsupported = { adaptive_p = "Adaptive-P sampler" }
+
+["nemotron-3.5-lightning"]
+name = "Nemotron 3.5 Lightning"
+tag = "hf.co/bartowski/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF:Q4_0"
+upstream = "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"
+quant = "Q4_0"
+confirmed = false
+think_values = [false, true]
+think_default = true
+recommended_source = "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"
+recommended = { temperature = 1.0, top_p = 0.95 }
+
+["hermes4.3-36b"]
+name = "Hermes 4.3 36B"
+tag = "hf.co/NousResearch/Hermes-4.3-36B-GGUF:Q3_K_M"
+upstream = "NousResearch/Hermes-4.3-36B"
+quant = "Q3_K_M"
+confirmed = false
+think_values = [false, true]
+think_default = false
+build_notes = "Q3_K_M so it fits at num_ctx 24576 (machine cap). A Q4_K_M build is already downloaded but would exceed the budget with that context."
+recommended_source = "https://huggingface.co/NousResearch/Hermes-4.3-36B (one set for both modes)"
+recommended = { temperature = 0.6, top_p = 0.95, top_k = 20 }
+
+[seed-oss-36b]
+name = "Seed-OSS-36B"
+tag = "hf.co/unsloth/Seed-OSS-36B-Instruct-GGUF:Q3_K_M"
+upstream = "ByteDance-Seed/Seed-OSS-36B-Instruct"
+quant = "Q3_K_M"
+confirmed = false
+recommended_source = "https://huggingface.co/ByteDance-Seed/Seed-OSS-36B-Instruct (\"We recommend sampling with temperature=1.1 and top_p=0.95\")"
+recommended = { temperature = 1.1, top_p = 0.95 }

@@ -1,0 +1,25 @@
+# Values that belong to this machine, not to the models or experiments.
+# For another machine: copy this file, edit it, and point POEMGEN_MACHINE (or --machine) at the copy.
+
+name = "m2-max-32gb"
+ollama_host = "http://127.0.0.1:11434"
+
+# GPU memory budget, from torch.mps.recommended_max_memory() on this Mac. A note for
+# memory planning only: the tool doesn't enforce it. Ollama's /api/ps size_vram is
+# recorded after each model's first poem, with a warning if the model spilled to the CPU.
+gpu_budget_gb = 26.8
+
+# Requests sent at once. Must equal the Ollama server's OLLAMA_NUM_PARALLEL (default 1).
+# That server setting applies to every model and multiplies its context memory
+# (num_ctx × parallel), so raise it only for runs of small models.
+parallel = 1
+
+request_timeout_minutes = 60
+keep_alive = "10m"        # how long Ollama keeps a model loaded between requests
+minutes_per_poem = 3      # time estimate for models with no poems yet
+
+# Largest num_ctx this machine can hold for a model (weights + context within the budget).
+# Estimates from docs/prd.md; check them on the first load.
+[num_ctx_caps]
+"hermes4.3-36b" = 24576
+"seed-oss-36b" = 24576

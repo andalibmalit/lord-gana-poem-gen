@@ -1,0 +1,15 @@
+# Smoke test: two poems from the smallest model, one without thinking and one with.
+
+models = ["gemma4-e4b"]
+system_prompts = ["1st-p"]
+user_prompt = "poem_generation"
+samples = 1
+seed = 333997   # sample i uses seed + i, in every combination
+
+[[settings]]
+name = "recommended"
+think = false
+
+[[settings]]
+name = "think-on"
+think = true
