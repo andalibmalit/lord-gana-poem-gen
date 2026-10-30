@@ -135,10 +135,22 @@ def sync(cfg: Config, experiments: list[str] | None = None, tracking_uri: str | 
                 client.delete_run(run.info.run_id)  # an earlier sync stopped halfway
                 run = None
             if run is not None:
-                changed = {k: v for k, v in tags.items() if run.data.tags.get(k) != v}
-                for key, value in changed.items():
-                    client.set_tag(run.info.run_id, key, value)
-                counts["updated" if changed else "unchanged"] += 1
+                # Refresh what can change (notes) and add fields newer poemgen versions log.
+                # Params are immutable in MLflow, so only missing ones are added.
+                new_tags = {k: v for k, v in tags.items() if run.data.tags.get(k) != v}
+                new_params = {k: v for k, v in params.items() if k not in run.data.params}
+                new_metrics = {k: v for k, v in metrics.items() if run.data.metrics.get(k) != v}
+                if new_tags or new_params or new_metrics:
+                    now = int(datetime.now(UTC).timestamp() * 1000)
+                    client.log_batch(
+                        run.info.run_id,
+                        metrics=[Metric(k, v, now, 0) for k, v in new_metrics.items()],
+                        params=[Param(k, v) for k, v in new_params.items()],
+                        tags=[RunTag(k, v) for k, v in new_tags.items()],
+                    )
+                    counts["updated"] += 1
+                else:
+                    counts["unchanged"] += 1
                 continue
             start = _ms(meta.get("created"))
             # Tag the run with its poem_id at creation, so an interrupted sync can find it.
