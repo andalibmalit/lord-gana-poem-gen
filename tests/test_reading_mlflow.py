@@ -189,8 +189,11 @@ def test_notes_record_mode_and_keep_the_blind_version(poems):
     save_note(poems, "exp", "aaaaaaaaaaaa", "after reveal", ["presence", "gemma"], "reveal", 8)
     entry = load_notes(poems, "exp")["aaaaaaaaaaaa"]
     assert entry["mode"] == "reveal" and entry["note"] == "after reveal"
-    assert entry["blind"]["note"] == "first read" and entry["blind"]["shuffle_seed"] == 7
-    save_note(poems, "exp", "aaaaaaaaaaaa", "again", [], "reveal", 8)
-    assert load_notes(poems, "exp")["aaaaaaaaaaaa"]["blind"]["note"] == "first read"
-    save_note(poems, "exp", "aaaaaaaaaaaa", "", [], "reveal", 8)  # cleared, blind kept
-    assert load_notes(poems, "exp")["aaaaaaaaaaaa"] == {"blind": entry["blind"]}
+    assert [v["note"] for v in entry["blind_versions"]] == ["first read"]
+    assert entry["blind_versions"][0]["shuffle_seed"] == 7
+    save_note(poems, "exp", "aaaaaaaaaaaa", "again", [], "reveal", 8)  # reveal over reveal
+    save_note(poems, "exp", "aaaaaaaaaaaa", "re-read blind", [], "blind", 9)
+    save_note(poems, "exp", "aaaaaaaaaaaa", "", [], "reveal", 10)  # cleared after revealing
+    versions = load_notes(poems, "exp")["aaaaaaaaaaaa"]["blind_versions"]
+    assert [v["note"] for v in versions] == ["first read", "re-read blind"]
+    assert set(load_notes(poems, "exp")["aaaaaaaaaaaa"]) == {"blind_versions"}

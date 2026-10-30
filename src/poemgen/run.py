@@ -227,8 +227,9 @@ class Runner:
                     if consecutive >= MAX_CONSECUTIVE_FAILURES:
                         break
             finally:
-                # Drop queued poems at once (on Ctrl+C too); requests already sent finish.
-                pool.shutdown(wait=False, cancel_futures=True)
+                # Drop queued poems; wait for requests already sent, so the model isn't
+                # unloaded under them (on Ctrl+C this waits for those requests to finish).
+                pool.shutdown(wait=True, cancel_futures=True)
         if consecutive >= MAX_CONSECUTIVE_FAILURES:
             self.log(f"{model.key}: stopped after {consecutive} failures in a row.")
 

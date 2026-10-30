@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from poemgen import cli
-from poemgen.registry import Build, fetch_build, registry_base
+from poemgen.registry import Build, NotInRegistry, fetch_build, registry_base
 
 TEMPLATE = "{{ .System }}{{ .Prompt }}"
 PARAMS = {"stop": ["<|im_end|>"], "temperature": 0.6}
@@ -69,7 +69,7 @@ def test_fetch_build_reads_manifest_and_small_blobs_only():
 
 
 def test_fetch_build_missing_tag():
-    with pytest.raises(LookupError, match="not found"):
+    with pytest.raises(NotInRegistry, match="not found"):
         fetch_build("org/missing:q8", mock_client([]))
 
 

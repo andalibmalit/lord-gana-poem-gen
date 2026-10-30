@@ -12,7 +12,7 @@ import httpx
 from poemgen.config import Config, ConfigError, Model, load_config, load_experiment
 from poemgen.ollama import Ollama, OllamaError
 from poemgen.plan import Plan, build_plan, estimate_minutes
-from poemgen.registry import Build, fetch_build
+from poemgen.registry import Build, NotInRegistry, fetch_build
 from poemgen.run import Runner, redact_modelfile
 
 
@@ -160,7 +160,7 @@ def cmd_models_check(cfg: Config, args: argparse.Namespace) -> int:
                 continue
             try:
                 lines = describe_build(fetch_build(tag, http), model, args.template)
-            except (LookupError, httpx.HTTPError) as e:
+            except (NotInRegistry, httpx.HTTPError) as e:
                 lines = [f"ERROR: {e}"]
             problems += any(w in ln for ln in lines for w in ("ERROR", "MISMATCH", "DIFFERS"))
             for line in lines:
@@ -291,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         cfg = load_config(machine_path=args.machine)
         return args.func(cfg, args)
-    except (ConfigError, ValueError, LookupError, OllamaError, httpx.HTTPError) as e:
+    except (ConfigError, ValueError, NotInRegistry, OllamaError, httpx.HTTPError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
 

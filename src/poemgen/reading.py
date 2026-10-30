@@ -44,16 +44,17 @@ def save_note(
 ) -> dict:
     """Save a note, recording whether it was written blind or after revealing.
 
-    When a blind note is first edited in reveal mode, the blind version is kept under
-    "blind", so the blind judgment is never lost.
+    Whenever a note written blind is overwritten in reveal mode, it's appended to
+    "blind_versions", so no blind judgment is ever lost.
     """
     tags = sorted({t.strip() for t in tags if t.strip()})
     with _notes_lock:
         notes = load_notes(cfg, experiment)
         previous = notes.get(poem_id, {})
-        blind = previous.get("blind")
-        if blind is None and mode == "reveal" and previous.get("mode") == "blind":
-            blind = {k: previous[k] for k in ("note", "tags", "updated", "shuffle_seed")}
+        blind_versions = list(previous.get("blind_versions", []))
+        if mode == "reveal" and previous.get("mode") == "blind":
+            keys = ("note", "tags", "updated", "shuffle_seed")
+            blind_versions.append({k: previous.get(k) for k in keys})
         entry: dict = {}
         if note.strip() or tags:
             entry = {
@@ -63,8 +64,8 @@ def save_note(
                 "mode": mode,
                 "shuffle_seed": shuffle_seed,
             }
-        if blind:
-            entry["blind"] = blind
+        if blind_versions:
+            entry["blind_versions"] = blind_versions
         if entry:
             notes[poem_id] = entry
         else:
@@ -80,7 +81,8 @@ def poem_entries(cfg: Config, experiment: str, reveal: bool) -> list[dict]:
         meta, poem = records.load_poem(path)
         entry = {"id": meta["poem_id"], "poem": poem}
         if reveal:
-            thinking = records.thinking_path(path)
+            thinking_file = records.thinking_path(path)
+            thinking = records.read_text(thinking_file) if thinking_file.exists() else None
             request = meta.get("request", {})
             entry["details"] = {
                 "model": meta.get("model", {}).get("name") or meta.get("model", {}).get("key"),
@@ -96,12 +98,11 @@ def poem_entries(cfg: Config, experiment: str, reveal: bool) -> list[dict]:
                 },
                 "flags": {k: v for k, v in (meta.get("flags") or {}).items() if v},
                 "not_applied": meta.get("not_applied") or {},
-                "counts": records.text_counts(
-                    poem,
-                    records.read_text(thinking) if thinking.exists() else "",
-                    meta.get("response", {}).get("eval_count"),
+                "counts": meta.get("counts")
+                or records.text_counts(
+                    poem, thinking or "", meta.get("response", {}).get("eval_count")
                 ),
-                "thinking": records.read_text(thinking) if thinking.exists() else None,
+                "thinking": thinking,
             }
         entries.append(entry)
     return entries

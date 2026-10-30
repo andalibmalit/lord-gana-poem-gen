@@ -74,9 +74,11 @@ def run_fields(meta: dict, note: dict | None, counts: dict) -> tuple[dict, dict,
     tags["note"] = (note or {}).get("note", "")[:MAX_TAG]
     tags["note_tags"] = ", ".join((note or {}).get("tags", []))
     tags["note_mode"] = (note or {}).get("mode", "")
-    blind = (note or {}).get("blind") or {}
-    tags["blind_note"] = blind.get("note", "")[:MAX_TAG]
-    tags["blind_note_tags"] = ", ".join(blind.get("tags", []))
+    blind_versions = (note or {}).get("blind_versions", [])
+    blind = blind_versions[-1] if blind_versions else {}  # the latest blind judgment
+    tags["blind_note"] = (blind.get("note") or "")[:MAX_TAG]
+    tags["blind_note_tags"] = ", ".join(blind.get("tags") or [])
+    tags["blind_versions"] = str(len(blind_versions))
     memory = meta.get("memory") or {}
     metrics = {
         "prompt_tokens": response.get("prompt_eval_count"),
@@ -127,10 +129,11 @@ def sync(
         for path in records.poem_files(cfg.poems_dir, name):
             meta, poem = records.load_poem(path)
             thinking_file = records.thinking_path(path)
-            thinking = records.read_text(thinking_file) if thinking_file.exists() else ""
-            text = records.text_counts(
-                poem, thinking, (meta.get("response") or {}).get("eval_count")
-            )
+            text = meta.get("counts")  # poems from before counts were recorded: compute them
+            if text is None:
+                thinking = records.read_text(thinking_file) if thinking_file.exists() else ""
+                eval_count = (meta.get("response") or {}).get("eval_count")
+                text = records.text_counts(poem, thinking, eval_count)
             params, tags, metrics = run_fields(meta, notes.get(meta["poem_id"]), text)
             run = existing.get(meta["poem_id"])
             if run is not None and run.info.status != "FINISHED":

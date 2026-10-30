@@ -86,6 +86,7 @@ const notes = DATA.notes || {};
 let order = DATA.poems.slice();
 let i = 0;
 let dirty = false;
+const hasNote = (id) => Boolean(notes[id] && notes[id].updated);
 
 const storeKey = `poemgen:${DATA.experiment}:${DATA.reveal ? "reveal" : "blind"}`;
 try { const saved = JSON.parse(localStorage.getItem(storeKey) || "{}");
@@ -128,8 +129,8 @@ function renderDetails(p) {
   const t = document.createElement("table");
   t.append(row("tag", d.tag), row("system prompt", d.system_prompt), row("think", String(d.think)),
            row("sample", String(d.sample)),
-           row("poem", `${d.counts.poem_words} words, ${d.counts.poem_tokens} tokens`),
-           row("thinking", `${d.counts.thinking_words} words, ${d.counts.thinking_tokens} tokens`),
+           row("poem", `${d.counts.poem_words} words, ${d.counts.poem_tokens ?? "?"} tokens`),
+           row("thinking", `${d.counts.thinking_words} words, ${d.counts.thinking_tokens ?? "?"} tokens`),
            row("token split", d.counts.token_split || "?"));
   Object.entries(d.options).forEach(([k, [v, origin]]) =>
     t.append(row(k, `${JSON.stringify(v)}   (${origin || "?"})`)));
@@ -154,7 +155,7 @@ function show() {
   $("note").value = n.note || "";
   $("tags").value = (n.tags || []).join(", ");
   dirty = false;
-  const done = order.filter((q) => notes[q.id]).length;
+  const done = order.filter((q) => hasNote(q.id)).length;
   $("progress").textContent = `${i + 1} / ${order.length} · ${done} with notes`;
   setStatus(n.updated ? `Saved ${new Date(n.updated).toLocaleString()}` : "");
   renderChips(); renderDetails(p);
@@ -172,9 +173,9 @@ async function save() {
                                        body: JSON.stringify(body) });
     const saved = await r.json();
     if (!r.ok) throw new Error(saved.error || r.status);
-    if (saved.updated) notes[p.id] = saved; else delete notes[p.id];
+    if (Object.keys(saved).length) notes[p.id] = saved; else delete notes[p.id];
     dirty = false; setStatus("Saved", "ok"); renderChips();
-    const done = order.filter((q) => notes[q.id]).length;
+    const done = order.filter((q) => hasNote(q.id)).length;
     $("progress").textContent = `${i + 1} / ${order.length} · ${done} with notes`;
     return true;
   } catch (e) { setStatus(`Not saved: ${e.message}. Is poemgen read still running?`, "err"); return false; }
@@ -190,7 +191,7 @@ $("next").onclick = () => go(i + 1);
 $("skip").onclick = () => {
   for (let k = 1; k <= order.length; k++) {
     const j = (i + k) % order.length;
-    if (!notes[order[j].id]) return go(j);
+    if (!hasNote(order[j].id)) return go(j);
   }
   setStatus("Every poem has notes.", "ok");
 };

@@ -250,7 +250,7 @@ confirmed = true
 weights_sha256 = "sha256:bcacde69f2ee5f6277de55769548e4d5951a06abdb63f6429d25a6aef1be88a0"
 think_values = [false, "low", "medium", true]
 think_default = true
-build_notes = "Already downloaded; ran fine locally on 30 Oct (16.81 GB; est. 20.7 GB). base_model HemmingwayAI/Hemmingway-1.5, a finetune of Hemmingway-1. Thinking as Hemmingway-1 (rendered-prompt test): the card's off / low / medium / extra-high are false / 'low' / 'medium' / true. Larger alternative: i1 :Q5_K_M (19.54 GB, est. 23.4 GB)."
+build_notes = "Ran fine locally on 30 Oct (16.81 GB; est. 20.7 GB); since removed from disk, so it needs a fresh download. base_model HemmingwayAI/Hemmingway-1.5, a finetune of Hemmingway-1. Thinking as Hemmingway-1 (rendered-prompt test): the card's off / low / medium / extra-high are false / 'low' / 'medium' / true. Larger alternative: i1 :Q5_K_M (19.54 GB, est. 23.4 GB)."
 recommended_source = "https://huggingface.co/HemmingwayAI/Hemmingway-1.5 (\"lower temperatures make its writing easier to detect\")"
 recommended = { temperature = 1.0 }
 inherited_source = "HemmingwayAI/Hemmingway-1.5 generation_config.json"

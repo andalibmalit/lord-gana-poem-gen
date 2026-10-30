@@ -19,6 +19,10 @@ PARAMS_LAYER = "application/vnd.ollama.image.params"
 SMALL_LAYER_LIMIT = 1_000_000  # bytes; never download anything bigger than this
 
 
+class NotInRegistry(Exception):
+    """The tag doesn't exist in its registry."""
+
+
 @dataclass
 class Build:
     tag: str
@@ -51,7 +55,7 @@ def registry_base(tag: str) -> tuple[str, str]:
 
 
 def fetch_build(tag: str, client: httpx.Client | None = None) -> Build:
-    """Fetch a tag's manifest plus its template and params. Raises LookupError if missing."""
+    """Fetch a tag's manifest plus its template and params. Raises NotInRegistry if missing."""
     own = client is None
     client = client or httpx.Client(timeout=30, follow_redirects=True)
     try:
@@ -59,7 +63,7 @@ def fetch_build(tag: str, client: httpx.Client | None = None) -> Build:
         url = f"{base}/manifests/{ref}"
         r = client.get(url, headers={"Accept": MANIFEST_ACCEPT})
         if r.status_code in (401, 404):
-            raise LookupError(f"{tag}: not found in the registry ({r.status_code}).")
+            raise NotInRegistry(f"{tag}: not found in the registry ({r.status_code}).")
         r.raise_for_status()
         manifest = r.json()
         layers = manifest.get("layers", [])
