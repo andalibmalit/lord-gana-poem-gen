@@ -78,8 +78,22 @@ def thinking_path(poem_file: Path) -> Path:
     return poem_file.with_name(poem_file.stem + ".thinking.md")
 
 
+class _Dumper(yaml.SafeDumper):
+    """SafeDumper that escapes the characters YAML reads as line breaks."""
+
+
+def _represent_str(dumper: yaml.SafeDumper, data: str) -> yaml.ScalarNode:
+    # PyYAML writes NEL and the Unicode line/paragraph separators unescaped, and reads them
+    # back as line breaks; double quotes make it escape them.
+    style = '"' if any(c in data for c in "\x85\u2028\u2029") else None
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=style)
+
+
+_Dumper.add_representer(str, _represent_str)
+
+
 def dump(meta: dict, body: str) -> str:
-    front = yaml.safe_dump(meta, sort_keys=False, allow_unicode=True, width=100)
+    front = yaml.dump(meta, Dumper=_Dumper, sort_keys=False, allow_unicode=True, width=100)
     return f"{FRONT}{front}{FRONT}\n{body}"
 
 

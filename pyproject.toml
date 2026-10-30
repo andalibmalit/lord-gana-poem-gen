@@ -47,3 +47,6 @@ explicit-preview-rules = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Tests marked `ollama` talk to the real local Ollama; run them with `pytest -m ollama`.
+addopts = "-m 'not ollama'"
+markers = ["ollama: needs the real local Ollama (opt-in)"]
